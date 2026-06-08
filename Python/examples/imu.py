@@ -19,7 +19,7 @@ Add the following to your settings.json file in the Sensors section:
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import time
-import Python.fsds as fsds
+import fsds
 
 # connect to the AirSim simulator 
 client = fsds.FSDSClient()

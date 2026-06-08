@@ -6,7 +6,7 @@ import time
 import numpy
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import Python.fsds as fsds
+import fsds
 
 # ---------------------------------------------------------------------------
 # Autonomous system constants
