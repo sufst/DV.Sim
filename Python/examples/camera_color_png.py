@@ -29,7 +29,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import time
-import fsds
+import Python.fsds as fsds
 
 # connect to the simulator 
 client = fsds.FSDSClient()
