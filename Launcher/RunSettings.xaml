@@ -4,6 +4,25 @@
         WindowStartupLocation="Manual" Background="#0C111C" Foreground="#EDF3FC"
         FontFamily="Segoe UI" FontSize="14" UseLayoutRounding="True">
   <Window.Resources>
+    <Style TargetType="ScrollBar">
+      <Setter Property="Width" Value="8"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Track x:Name="PART_Track" Orientation="{TemplateBinding Orientation}" IsDirectionReversed="True">
+              <Track.Thumb>
+                <Thumb>
+                  <Thumb.Template>
+                    <ControlTemplate TargetType="Thumb"><Border Background="#33425A" CornerRadius="4" Margin="1"/></ControlTemplate>
+                  </Thumb.Template>
+                </Thumb>
+              </Track.Thumb>
+            </Track>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
     <Style TargetType="TextBlock">
       <Setter Property="Foreground" Value="#EDF3FC"/>
     </Style>
@@ -78,9 +97,9 @@
             <TextBlock Text="DV" Foreground="#161329" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <TextBlock Text="DV.Sim" FontSize="25" FontWeight="SemiBold" Margin="0,16,0,3"/>
-          <Border Background="#23304B" CornerRadius="8" Padding="13,12" Margin="0,40,0,0">
-            <TextBlock Text="Run settings" Foreground="#C8B9FF" FontWeight="SemiBold"/>
-          </Border>
+          <Button Name="RunSettingsNav" Content="Run settings" Background="#23304B" Foreground="#C8B9FF" BorderThickness="0" Padding="13,12" Margin="0,40,0,0" HorizontalContentAlignment="Left"/>
+          <TextBlock Text="In-Run visuals" Style="{StaticResource Eyebrow}" Margin="10,28,0,10"/>
+          <Button Name="LiveLidarButton" Content="Lidar map" Background="#101827" BorderThickness="0" Padding="13,12" HorizontalContentAlignment="Left"/>
         </StackPanel>
         <StackPanel Grid.Row="2">
           <Border Height="1" Background="#2A364A" Margin="0,0,0,18"/>
@@ -174,6 +193,45 @@
             <Button Name="ToggleButton" Grid.Column="2" Content="Add" Background="#64E6AE" Foreground="#101B18" BorderThickness="0"/>
           </Grid>
           <TextBlock Name="PlacementSummary" Style="{StaticResource Muted}" FontSize="12" Margin="0,13,0,0"/>
+        </StackPanel>
+        <StackPanel Name="VisualsPage" Visibility="Collapsed">
+          <DockPanel Margin="0,0,0,8">
+            <Border DockPanel.Dock="Right" Background="#1B2A3C" CornerRadius="8" Padding="12,6" VerticalAlignment="Center">
+              <TextBlock Name="LiveState" Text="OFFLINE" FontSize="10" FontWeight="SemiBold" Foreground="#9BAAC0"/>
+            </Border>
+            <TextBlock Text="Lidar map" FontSize="30" FontWeight="SemiBold"/>
+          </DockPanel>
+          <TextBlock Text="Live returns from the lidar's point of view." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,18"/>
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+            <Button Name="PovButton" Content="Sensor POV" FontSize="12" Padding="16,9" Background="#34415D" Foreground="#C8B9FF"/>
+            <Button Name="TopDownButton" Content="Top-down / 360&#176;" FontSize="12" Padding="16,9" Margin="10,0,0,0"/>
+          </StackPanel>
+          <Border CornerRadius="14" BorderBrush="#33425A" BorderThickness="1" Background="#09111D" ClipToBounds="True">
+            <Grid Height="350">
+              <Grid Name="LidarPlotHost" Margin="8"/>
+              <TextBlock Name="ViewAxisLabel" Text="+X FORWARD   /   +Y LEFT   /   +Z UP" Style="{StaticResource Eyebrow}" FontSize="9" Margin="18,14" VerticalAlignment="Top" IsHitTestVisible="False"/>
+              <Border Name="LidarOverlay" Background="#E609111D" Padding="24" CornerRadius="12" HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="400">
+                <StackPanel>
+                  <TextBlock Name="LidarOverlayTitle" Text="Start the run" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                  <TextBlock Name="LidarOverlayBody" Text="Choose a map and click Run Simulation in FSDS." Style="{StaticResource Muted}" TextAlignment="Center" FontSize="12"/>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+          <Grid Margin="0,15,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <TextBlock Text="View range" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>
+            <Slider Name="ViewRangeSlider" Grid.Column="1" Minimum="5" Maximum="200" Value="40" Margin="16,0" VerticalAlignment="Center" AutomationProperties.Name="Lidar view range in metres"/>
+            <TextBlock Name="ViewRangeLabel" Grid.Column="2" Text="40 m" Foreground="#C8B9FF" MinWidth="45" VerticalAlignment="Center"/>
+          </Grid>
+          <DockPanel Margin="0,14,0,0">
+            <TextBlock Name="ScanSummary" DockPanel.Dock="Right" Text="Waiting for a scan" Style="{StaticResource Muted}" FontSize="11" TextAlignment="Right"/>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <Ellipse Fill="#64E6AE" Width="6" Height="6" Margin="0,0,6,0"/><TextBlock Text="Near" Style="{StaticResource Muted}" FontSize="10" Margin="0,0,14,0"/>
+              <Ellipse Fill="#5ED0F2" Width="6" Height="6" Margin="0,0,6,0"/><TextBlock Text="Mid" Style="{StaticResource Muted}" FontSize="10" Margin="0,0,14,0"/>
+              <Ellipse Fill="#B6A1FF" Width="6" Height="6" Margin="0,0,6,0"/><TextBlock Text="Far" Style="{StaticResource Muted}" FontSize="10"/>
+            </StackPanel>
+          </DockPanel>
         </StackPanel>
         <StackPanel Name="PlacementPage" Visibility="Collapsed">
           <TextBlock Text="Find the right position." FontSize="29" FontWeight="SemiBold" Margin="0,0,0,8"/>

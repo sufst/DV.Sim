@@ -51,6 +51,33 @@ python -m pip install -r requirments.txt
 - Open **Run-Simulator.cmd** and start a simulation
 - In another window, start running the python controller script. This should start to autonomously drive the car!
 
+## Live lidar view
+
+In the settings window, choose **In-Run visuals > Lidar map**. The view connects
+automatically when a simulation starts. If FSDS is on its menu or closed, it shows
+**Start the run**. Add the Pandar 40P and apply the setup before starting a run;
+a running simulation without a lidar shows **Add a lidar first**. Paused or stale
+scans clear the view and prompt you to resume the run.
+
+**Sensor POV** looks forward along the lidar's own X axis, with Y to the left and
+Z up. **Top-down / 360 degrees** shows returns around the sensor. These are raw
+lidar points; the viewer does not classify cones. The view-range slider clips
+distant returns; dots are coloured by distance. Both views use
+the [actual sensor-frame XYZ returns](https://fs-driverless.github.io/Formula-Student-Driverless-Simulator/v2.2.0/lidar/),
+not a camera image or ground-truth map.
+
+The viewer polls at up to 5 Hz while its page is open. It reads every returned
+point and draws up to 18,000 per frame to keep the window responsive. It only
+reads car state and lidar data; it does not acquire API control or command the
+car. Leaving the page or closing the settings window disconnects it. No Python
+packages or additional runtime installation are needed.
+
+To run the offline viewer checks (including a local mock RPC server):
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File .\Launcher\tests\Test-LidarView.ps1
+```
+
 ## Pandar 40P simulation profile
 
 The profile uses 40 channels, 360-degree horizontal coverage, a -25 to +15 degree

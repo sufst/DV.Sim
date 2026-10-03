@@ -1,6 +1,11 @@
 param([switch]$Fullscreen, [switch]$SettingsOnly)
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
+Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Xaml
+Add-Type -Path (Join-Path $PSScriptRoot 'LidarView.cs') -ReferencedAssemblies @(
+    'System.dll', 'System.Core.dll', [Windows.Point].Assembly.Location,
+    [Windows.Media.Brush].Assembly.Location, [Windows.FrameworkElement].Assembly.Location,
+    [System.Xaml.XamlReader].Assembly.Location
+)
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
@@ -29,6 +34,10 @@ $script:basePath = Join-Path $script:repoRoot 'settings.json'
 $script:dirty = $false
 $script:page = 'Home'
 $script:mutex = $null
+$script:lidarFeed = $null
+$script:lidarTimer = New-Object Windows.Threading.DispatcherTimer
+$script:lidarTimer.Interval = [TimeSpan]::FromMilliseconds(200)
+$script:lidarTimer.Add_Tick({ Update-LidarView })
 $script:placementTimer = New-Object Windows.Threading.DispatcherTimer
 $script:placementTimer.Interval = [TimeSpan]::FromMilliseconds(250)
 $script:placementTimer.Add_Tick({
@@ -77,16 +86,73 @@ function Start-Simulator {
     $script:dirty = $false
 }
 
+function Stop-LidarView {
+    $script:lidarTimer.Stop()
+    if ($script:lidarFeed) { $script:lidarFeed.Dispose(); $script:lidarFeed = $null }
+}
+
+function Start-LidarView {
+    Stop-LidarView
+    $script:lidarPlot.SetPoints($null)
+    $script:ui.LidarOverlay.Visibility = 'Visible'
+    $script:ui.LidarOverlayTitle.Text = 'Start the run'
+    $script:ui.LidarOverlayBody.Text = 'Choose a map and click Run Simulation in FSDS.'
+    $settings = Get-Content -LiteralPath $script:basePath -Raw | ConvertFrom-Json
+    $port = if ($settings.ApiServerPort) { [int]$settings.ApiServerPort } else { 41451 }
+    $script:lidarFeed = New-Object DVSim.LidarFeed($port)
+    $script:lidarTimer.Start()
+}
+
+function Update-LidarView {
+    if (-not $script:lidarFeed) { return }
+    $scan = $script:lidarFeed.Latest
+    $live = $scan.Status -eq 'Live'
+    $script:ui.LidarOverlay.Visibility = if ($live) { 'Collapsed' } else { 'Visible' }
+    $script:ui.LiveState.Text = if ($live) { 'LIVE' } else { 'WAITING' }
+    $script:ui.LiveState.Foreground = if ($live) { '#64E6AE' } else { '#9BAAC0' }
+    if ($live) {
+        $script:lidarPlot.SetPoints($scan.Points)
+        $age = [math]::Max(0, [int]([DateTime]::UtcNow - $scan.ReceivedAt).TotalMilliseconds)
+        $script:ui.ScanSummary.Text = '{0:N0} returns / {1} ms ago' -f ($scan.Points.Length / 3), $age
+    } else {
+        $script:lidarPlot.SetPoints($null)
+        $script:ui.ScanSummary.Text = 'Waiting for a scan'
+        switch ($scan.Status) {
+            'NoLidar' {
+                $script:ui.LidarOverlayTitle.Text = 'Add a lidar first'
+                $script:ui.LidarOverlayBody.Text = 'Add the Pandar 40P in Run settings, apply and restart, then start the run.'
+            }
+            'Paused' {
+                $script:ui.LidarOverlayTitle.Text = 'Resume the run'
+                $script:ui.LidarOverlayBody.Text = 'The lidar scan has stopped updating. Resume or start a run in FSDS.'
+            }
+            'Waiting' {
+                $script:ui.LidarOverlayTitle.Text = 'Waiting for lidar'
+                $script:ui.LidarOverlayBody.Text = 'Start the run in FSDS to receive the first scan.'
+            }
+            default {
+                $script:ui.LidarOverlayTitle.Text = 'Start the run'
+                $script:ui.LidarOverlayBody.Text = 'Choose a map and click Run Simulation in FSDS.'
+            }
+        }
+    }
+}
+
 function Show-Page([string]$Page) {
+    if ($script:page -eq 'Visuals' -and $Page -ne 'Visuals') { Stop-LidarView }
     $script:page = $Page
-    foreach ($name in 'Home', 'Catalog', 'Sensor', 'Placement') {
+    foreach ($name in 'Home', 'Catalog', 'Sensor', 'Placement', 'Visuals') {
         $script:ui[$name + 'Page'].Visibility = if ($Page -eq $name) { 'Visible' } else { 'Collapsed' }
     }
     $script:ui.BackButton.Visibility = if ($Page -eq 'Home') { 'Collapsed' } else { 'Visible' }
     $script:ui.Breadcrumb.Text = switch ($Page) {
         'Home' { 'RUN SETTINGS' }; 'Catalog' { 'RUN SETTINGS / LIDAR' }
         'Sensor' { 'LIDAR / PANDAR 40P' }; 'Placement' { 'PANDAR 40P / PLACEMENT' }
+        'Visuals' { 'IN-RUN VISUALS / LIDAR MAP' }
     }
+    $script:ui.RunSettingsNav.Background = if ($Page -eq 'Visuals') { '#101827' } else { '#23304B' }
+    $script:ui.LiveLidarButton.Background = if ($Page -eq 'Visuals') { '#23304B' } else { '#101827' }
+    if ($Page -eq 'Visuals') { Start-LidarView }
     if ($Page -eq 'Placement') {
         foreach ($axis in 'X', 'Y', 'Z', 'Roll', 'Pitch', 'Yaw') {
             $script:ui[$axis + 'Input'].Text = ([double]$script:preference.Placement.$axis).ToString('0.###', [Globalization.CultureInfo]::InvariantCulture)
@@ -147,6 +213,22 @@ try {
     $script:window.Top = $workArea.Top
     $script:ui = @{}
     foreach ($node in $markup.SelectNodes('//*[@Name]')) { $script:ui[$node.Name] = $script:window.FindName($node.Name) }
+    $script:lidarPlot = New-Object DVSim.LidarPlot
+    [void]$script:ui.LidarPlotHost.Children.Add($script:lidarPlot)
+    $script:ui.RunSettingsNav.Add_Click({ Show-Page 'Home' })
+    $script:ui.LiveLidarButton.Add_Click({ Show-Page 'Visuals' })
+    $script:ui.PovButton.Add_Click({
+        $script:lidarPlot.TopDown = $false
+        $script:ui.PovButton.Background = '#34415D'; $script:ui.TopDownButton.Background = '#202C40'
+    })
+    $script:ui.TopDownButton.Add_Click({
+        $script:lidarPlot.TopDown = $true
+        $script:ui.PovButton.Background = '#202C40'; $script:ui.TopDownButton.Background = '#34415D'
+    })
+    $script:ui.ViewRangeSlider.Add_ValueChanged({
+        $script:lidarPlot.Range = $script:ui.ViewRangeSlider.Value
+        $script:ui.ViewRangeLabel.Text = '{0:0} m' -f $script:lidarPlot.Range
+    })
     $script:ui.LidarButton.Add_Click({ Show-Page 'Catalog' })
     $script:ui.PandarButton.Add_Click({ Show-Page 'Sensor' })
     $script:ui.PlacementButton.Add_Click({ Show-Page 'Placement' })
@@ -198,6 +280,7 @@ try {
     [void][Windows.MessageBox]::Show($_.Exception.Message, 'DV.Sim could not open run settings', 'OK', 'Error')
     exit 1
 } finally {
+    Stop-LidarView
     $script:placementTimer.Stop()
     if ($script:mutex) { if ($created) { $script:mutex.ReleaseMutex() }; $script:mutex.Dispose() }
 }
