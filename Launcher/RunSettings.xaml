@@ -1,0 +1,237 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="DV.Sim | Run settings" Width="960" Height="820" MinWidth="880" MinHeight="740"
+        WindowStartupLocation="Manual" Background="#0C111C" Foreground="#EDF3FC"
+        FontFamily="Segoe UI" FontSize="14" UseLayoutRounding="True">
+  <Window.Resources>
+    <Style TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#EDF3FC"/>
+    </Style>
+    <Style x:Key="Muted" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#9BAAC0"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="LineHeight" Value="22"/>
+    </Style>
+    <Style x:Key="Eyebrow" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#8394AD"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style TargetType="Button">
+      <Setter Property="Background" Value="#202C40"/>
+      <Setter Property="Foreground" Value="#EDF3FC"/>
+      <Setter Property="BorderBrush" Value="#33425A"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="22,13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="ButtonBorder" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="10" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.82"/></Trigger>
+              <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.65"/></Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#B6A1FF"/></Trigger>
+              <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonBorder" Property="Opacity" Value="0.4"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    <Style TargetType="TextBox">
+      <Setter Property="Background" Value="#0D1523"/>
+      <Setter Property="Foreground" Value="#EDF3FC"/>
+      <Setter Property="CaretBrush" Value="#B6A1FF"/>
+      <Setter Property="BorderBrush" Value="#33425A"/>
+      <Setter Property="Padding" Value="12,9"/>
+      <Setter Property="FontSize" Value="16"/>
+      <Setter Property="Height" Value="42"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="InputBorder" CornerRadius="8" Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" Padding="{TemplateBinding Padding}">
+              <ScrollViewer x:Name="PART_ContentHost"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="InputBorder" Property="BorderBrush" Value="#B6A1FF"/></Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Window.Resources>
+  <Grid>
+    <Grid.ColumnDefinitions><ColumnDefinition Width="194"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <Border Background="#101827" BorderBrush="#233047" BorderThickness="0,0,1,0">
+      <Grid Margin="24,30">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <StackPanel>
+          <Border Background="#B6A1FF" CornerRadius="12" Width="46" Height="46" HorizontalAlignment="Left">
+            <TextBlock Text="DV" Foreground="#161329" FontWeight="Bold" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <TextBlock Text="DV.Sim" FontSize="25" FontWeight="SemiBold" Margin="0,16,0,3"/>
+          <Border Background="#23304B" CornerRadius="8" Padding="13,12" Margin="0,40,0,0">
+            <TextBlock Text="Run settings" Foreground="#C8B9FF" FontWeight="SemiBold"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Row="2">
+          <Border Height="1" Background="#2A364A" Margin="0,0,0,18"/>
+          <StackPanel Orientation="Horizontal">
+            <Ellipse Fill="#64E6AE" Width="7" Height="7" Margin="0,0,8,0"/>
+            <TextBlock Text="LOCAL CONFIGURATION" Style="{StaticResource Eyebrow}" FontSize="9"/>
+          </StackPanel>
+          <TextBlock Text="Saved between sessions" Style="{StaticResource Muted}" FontSize="11" Margin="0,7,0,0"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Column="1" Margin="34,30,34,24">
+      <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+      <DockPanel Margin="0,0,0,24">
+        <Button Name="BackButton" Content="&#x2190; Back" Padding="12,7" FontSize="12" Margin="0,0,15,0" Visibility="Collapsed"/>
+        <TextBlock Name="Breadcrumb" Text="RUN SETTINGS" Style="{StaticResource Eyebrow}" VerticalAlignment="Center"/>
+      </DockPanel>
+      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+      <Grid>
+        <StackPanel Name="HomePage">
+          <Button Name="LidarButton" AutomationProperties.Name="Lidar configuration" Padding="26" HorizontalContentAlignment="Stretch" Background="#172438" BorderBrush="#344667">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Border Width="60" Height="60" Background="#2B3354" CornerRadius="15" Margin="0,0,22,0">
+                <Grid>
+                  <Ellipse Width="34" Height="34" Stroke="#B6A1FF" StrokeThickness="1"/>
+                  <Ellipse Width="22" Height="22" Stroke="#B6A1FF" StrokeThickness="1"/>
+                  <Ellipse Width="8" Height="8" Fill="#B6A1FF"/>
+                </Grid>
+              </Border>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="Lidar configuration" FontSize="20" FontWeight="SemiBold"/>
+                <TextBlock Name="HomeSummary" Style="{StaticResource Muted}" FontSize="12" Margin="0,6,0,0"/>
+              </StackPanel>
+              <TextBlock Grid.Column="2" Text="&#x2192;" FontSize="26" Foreground="#B6A1FF" VerticalAlignment="Center"/>
+            </Grid>
+          </Button>
+        </StackPanel>
+        <StackPanel Name="CatalogPage" Visibility="Collapsed">
+          <TextBlock Text="Lidar configuration" FontSize="30" FontWeight="SemiBold" Margin="0,0,0,10"/>
+          <TextBlock Text="Choose the sensor for your vehicle." Style="{StaticResource Muted}" Margin="0,0,0,26"/>
+          <Button Name="PandarButton" AutomationProperties.Name="Hesai Pandar 40P" HorizontalContentAlignment="Stretch" Padding="26" Background="#172438">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="HESAI" Style="{StaticResource Eyebrow}" Foreground="#B6A1FF" Margin="0,0,0,6"/>
+                <TextBlock Text="Pandar 40P" FontSize="27" FontWeight="SemiBold"/>
+                <TextBlock Text="40 channels  /  360-degree coverage  /  10 Hz" Style="{StaticResource Muted}" FontSize="12" Margin="0,10,0,0"/>
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <Border Background="#283653" CornerRadius="8" Padding="12,5"><TextBlock Name="CatalogStatus" Text="Available" FontSize="11" Foreground="#C8B9FF"/></Border>
+                <TextBlock Text="&#x2192;" HorizontalAlignment="Right" FontSize="25" Foreground="#B6A1FF" Margin="0,15,0,0"/>
+              </StackPanel>
+            </Grid>
+          </Button>
+        </StackPanel>
+        <StackPanel Name="SensorPage" Visibility="Collapsed">
+          <TextBlock Name="SensorStatus" Text="NOT ADDED" Style="{StaticResource Eyebrow}" Margin="0,0,0,8"/>
+          <TextBlock Text="Hesai Pandar 40P" FontSize="32" FontWeight="SemiBold" Margin="0,0,0,7"/>
+          <TextBlock Text="40-channel mechanical lidar" Style="{StaticResource Muted}" Margin="0,0,0,22"/>
+          <Border Background="#172438" BorderBrush="#33425A" BorderThickness="1" CornerRadius="16" Padding="24">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="140"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Viewbox Width="120" Height="150" Margin="0,0,20,0">
+                <Canvas Width="120" Height="150">
+                  <Ellipse Canvas.Top="127" Canvas.Left="10" Width="100" Height="14" Fill="#0A101A"/>
+                  <Rectangle Canvas.Top="37" Canvas.Left="15" Width="90" Height="88" RadiusX="7" RadiusY="7" Fill="#28394D"/>
+                  <Rectangle Canvas.Top="44" Canvas.Left="15" Width="90" Height="42" Fill="#0D1822"/>
+                  <Ellipse Canvas.Top="24" Canvas.Left="15" Width="90" Height="26" Fill="#61748B" Stroke="#8C9CAD" StrokeThickness="1"/>
+                  <Ellipse Canvas.Top="29" Canvas.Left="28" Width="64" Height="16" Fill="#1A2838"/>
+                  <Rectangle Canvas.Top="85" Canvas.Left="15" Width="90" Height="3" Fill="#64E6AE"/>
+                  <Ellipse Canvas.Top="112" Canvas.Left="15" Width="90" Height="22" Fill="#34475D"/>
+                  <TextBlock Canvas.Top="98" Canvas.Left="38" Text="HESAI" FontSize="10" Foreground="#CAD7E7" FontWeight="Bold"/>
+                </Canvas>
+              </Viewbox>
+              <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <StackPanel><TextBlock Text="40" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="LASER CHANNELS" Style="{StaticResource Eyebrow}" FontSize="9"/></StackPanel>
+                <StackPanel Grid.Column="1"><TextBlock Text="360&#176;" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="HORIZONTAL VIEW" Style="{StaticResource Eyebrow}" FontSize="9"/></StackPanel>
+                <StackPanel Grid.Row="1" VerticalAlignment="Bottom"><TextBlock Text="10 Hz" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="SCAN FREQUENCY" Style="{StaticResource Eyebrow}" FontSize="9"/></StackPanel>
+                <StackPanel Grid.Row="1" Grid.Column="1" VerticalAlignment="Bottom"><TextBlock Text="200 m" FontSize="27" FontWeight="SemiBold"/><TextBlock Text="MAXIMUM RANGE" Style="{StaticResource Eyebrow}" FontSize="9"/></StackPanel>
+              </Grid>
+            </Grid>
+          </Border>
+          <TextBlock Text="Vertical view: -25&#176; to +15&#176;   /   72,000 firings per scan" Style="{StaticResource Muted}" FontSize="12" Margin="0,15,0,5"/>
+          <TextBlock Text="Simulated approximation: evenly spaced beams and ideal single returns." Style="{StaticResource Muted}" FontSize="11"/>
+          <Grid Margin="0,24,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Button Name="PlacementButton" Content="Placement"/>
+            <Button Name="ToggleButton" Grid.Column="2" Content="Add" Background="#64E6AE" Foreground="#101B18" BorderThickness="0"/>
+          </Grid>
+          <TextBlock Name="PlacementSummary" Style="{StaticResource Muted}" FontSize="12" Margin="0,13,0,0"/>
+        </StackPanel>
+        <StackPanel Name="PlacementPage" Visibility="Collapsed">
+          <TextBlock Text="Find the right position." FontSize="29" FontWeight="SemiBold" Margin="0,0,0,8"/>
+          <TextBlock Text="Position is relative to the vehicle origin. Rotations are in degrees." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,22"/>
+          <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="22"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+            <Border Background="#131E2E" CornerRadius="14" BorderBrush="#293B54" BorderThickness="1" Padding="10">
+              <StackPanel>
+                <TextBlock Text="TOP VIEW" Style="{StaticResource Eyebrow}" HorizontalAlignment="Center" Margin="0,6,0,8"/>
+                <Viewbox Stretch="Uniform">
+                  <Canvas Width="330" Height="280">
+                    <Line X1="165" Y1="15" X2="165" Y2="265" Stroke="#304057" StrokeDashArray="3,5"/>
+                    <Line X1="20" Y1="150" X2="310" Y2="150" Stroke="#304057" StrokeDashArray="3,5"/>
+                    <TextBlock Canvas.Left="180" Canvas.Top="5" Text="+X  Forward" FontSize="11" Foreground="#9BAAC0"/>
+                    <TextBlock Canvas.Left="10" Canvas.Top="160" Text="+Y Left" FontSize="11" Foreground="#9BAAC0"/>
+                    <Rectangle Canvas.Left="112" Canvas.Top="76" Width="17" Height="43" RadiusX="4" Fill="#080F19" Stroke="#526178"/>
+                    <Rectangle Canvas.Left="201" Canvas.Top="76" Width="17" Height="43" RadiusX="4" Fill="#080F19" Stroke="#526178"/>
+                    <Rectangle Canvas.Left="106" Canvas.Top="190" Width="22" Height="47" RadiusX="4" Fill="#080F19" Stroke="#526178"/>
+                    <Rectangle Canvas.Left="202" Canvas.Top="190" Width="22" Height="47" RadiusX="4" Fill="#080F19" Stroke="#526178"/>
+                    <Path Data="M 150,48 L 180,48 L 185,125 L 201,201 L 190,242 L 140,242 L 129,201 L 145,125 Z" Fill="#253851" Stroke="#6E86A6" StrokeThickness="2"/>
+                    <Rectangle Canvas.Left="120" Canvas.Top="66" Width="90" Height="8" RadiusX="2" Fill="#8093AB"/>
+                    <Rectangle Canvas.Left="120" Canvas.Top="238" Width="90" Height="8" RadiusX="2" Fill="#8093AB"/>
+                    <Ellipse Canvas.Left="148" Canvas.Top="163" Width="34" Height="46" Fill="#0C1523" Stroke="#455F7D"/>
+                    <Ellipse Name="LidarMarker" Canvas.Left="158" Canvas.Top="140" Width="14" Height="14" Fill="#64E6AE" Stroke="#CDFCE6" StrokeThickness="2"/>
+                  </Canvas>
+                </Viewbox>
+                <TextBlock Name="PreviewHeight" Text="Height: 0.8 m" HorizontalAlignment="Center" Foreground="#64E6AE" FontSize="12" Margin="0,6"/>
+                <TextBlock Text="Placement preview / schematic" Style="{StaticResource Muted}" FontSize="10" HorizontalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="POSITION / METRES" Style="{StaticResource Eyebrow}" Margin="0,0,0,10"/>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="X / Forward" FontSize="11" Foreground="#9BAAC0" Margin="0,0,0,5"/><TextBox Name="XInput" AutomationProperties.Name="X position in metres"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Y / Left" FontSize="11" Foreground="#9BAAC0" Margin="0,0,0,5"/><TextBox Name="YInput" AutomationProperties.Name="Y position in metres"/></StackPanel>
+              </Grid>
+              <TextBlock Text="Z / Up" FontSize="11" Foreground="#9BAAC0" Margin="0,12,0,5"/><TextBox Name="ZInput" AutomationProperties.Name="Z position in metres"/>
+              <TextBlock Text="ROTATION / DEGREES" Style="{StaticResource Eyebrow}" Margin="0,22,0,10"/>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="10"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="Roll / X axis" FontSize="11" Foreground="#9BAAC0" Margin="0,0,0,5"/><TextBox Name="RollInput" AutomationProperties.Name="Roll in degrees"/></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Pitch / Y axis" FontSize="11" Foreground="#9BAAC0" Margin="0,0,0,5"/><TextBox Name="PitchInput" AutomationProperties.Name="Pitch in degrees"/></StackPanel>
+              </Grid>
+              <TextBlock Text="Yaw / Z axis" FontSize="11" Foreground="#9BAAC0" Margin="0,12,0,5"/><TextBox Name="YawInput" AutomationProperties.Name="Yaw in degrees"/>
+            </StackPanel>
+          </Grid>
+          <TextBlock Name="PlacementError" Foreground="#FF8990" TextWrapping="Wrap" FontSize="12" MinHeight="22" Margin="0,12,0,8"/>
+          <Button Name="SavePlacementButton" Content="Save placement" Background="#B6A1FF" Foreground="#181329" BorderThickness="0" HorizontalAlignment="Right"/>
+        </StackPanel>
+      </Grid>
+      </ScrollViewer>
+      <Border Grid.Row="2" BorderBrush="#25324A" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,22,0,0">
+        <StackPanel>
+          <TextBlock Name="SaveStatus" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,12"/>
+          <Button Name="RestartButton" Content="Restart simulator" HorizontalAlignment="Left" Padding="18,10" FontSize="12"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

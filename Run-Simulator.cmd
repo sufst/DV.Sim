@@ -8,7 +8,7 @@ if not exist "%~dp0FSDS.exe" (
 )
 
 if /i "%~1"=="--fullscreen" (
-    start "" /D "%~dp0" "%~dp0FSDS.exe" -fullscreen
+    start "" powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Launcher\RunSettings.ps1" -Fullscreen
 ) else (
-    start "" /D "%~dp0" "%~dp0FSDS.exe" -windowed -ResX=1280 -ResY=720
+    start "" powershell.exe -NoProfile -STA -ExecutionPolicy Bypass -WindowStyle Hidden -File "%~dp0Launcher\RunSettings.ps1"
 )
