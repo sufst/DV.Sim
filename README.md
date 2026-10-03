@@ -67,7 +67,11 @@ from 0 to 5 m and downward tilt from 0 to 45 degrees while viewing live returns.
 Top-down is second and Sensor POV is third. Raised POV follows the sensor's
 heading and does not change its placement. Reduce the view range to inspect nearby clusters. These are
 raw lidar points; the viewer does not classify cones. The view-range
-slider clips distant returns; dots are coloured by distance. All three views use
+slider clips distant returns and starts at the sensor's full 200 m range. Dots use
+128 shades from red nearby through orange, yellow, green, cyan and blue to purple
+far away. The fixed logarithmic distance scale gives finer colour changes nearby,
+particularly within 20 m; changing the view range does not change a point's colour.
+All three views use
 the [actual sensor-frame XYZ returns](https://fs-driverless.github.io/Formula-Student-Driverless-Simulator/v2.2.0/lidar/),
 not a camera image or ground-truth map.
 

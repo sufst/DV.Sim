@@ -214,13 +214,15 @@ namespace DVSim {
         bool angled;
         double cameraHeight = 1.2;
         double cameraTilt = 15;
-        double range = 40;
+        double range = 200;
+        const int ColorCount = 128;
         readonly Brush[] colors;
         readonly Pen gridPen;
         readonly Brush background;
         public LidarPlot() {
             ClipToBounds = true;
-            colors = new Brush[] { new SolidColorBrush(Color.FromRgb(100,230,174)), new SolidColorBrush(Color.FromRgb(94,208,242)), new SolidColorBrush(Color.FromRgb(182,161,255)) };
+            colors = new Brush[ColorCount];
+            for (int i=0; i<ColorCount; i++) colors[i] = new SolidColorBrush(PaletteColor(i));
             foreach (var color in colors) color.Freeze();
             gridPen = new Pen(new SolidColorBrush(Color.FromRgb(35,52,73)), 1); gridPen.Freeze();
             background = new SolidColorBrush(Color.FromRgb(9,17,29)); background.Freeze();
@@ -231,6 +233,24 @@ namespace DVSim {
         public double CameraTilt { get { return cameraTilt; } set { cameraTilt = Math.Max(0, Math.Min(45, value)); InvalidateVisual(); } }
         public double Range { get { return range; } set { range = Math.Max(5, Math.Min(200, value)); InvalidateVisual(); } }
         public void SetPoints(double[] value) { points = value ?? new double[0]; InvalidateVisual(); }
+        // Fixed physical scale: logarithmic spacing highlights small nearby changes.
+        public static int DistanceColorIndex(double distance) {
+            double fraction = Math.Log(1 + Math.Max(0, Math.Min(200, distance))/2) / Math.Log(101);
+            return Math.Min(ColorCount-1, (int)(fraction*(ColorCount-1)));
+        }
+        static Color PaletteColor(int index) {
+            double hue = 285.0 * index / (ColorCount-1) / 60;
+            double chroma = 0.78, secondary = chroma*(1-Math.Abs(hue%2-1)), baseValue = 1-chroma;
+            double r=0, g=0, b=0;
+            switch ((int)hue) {
+                case 0: r=chroma; g=secondary; break;
+                case 1: r=secondary; g=chroma; break;
+                case 2: g=chroma; b=secondary; break;
+                case 3: g=secondary; b=chroma; break;
+                default: r=secondary; b=chroma; break;
+            }
+            return Color.FromRgb((byte)Math.Round((r+baseValue)*255), (byte)Math.Round((g+baseValue)*255), (byte)Math.Round((b+baseValue)*255));
+        }
         // Sensor frame: +X forward, +Y left, +Z up. No vehicle/world transform is applied.
         public static bool Project(double x, double y, double z, bool topDown, double range, double width, double height, out Point pixel) {
             pixel = new Point();
@@ -280,7 +300,7 @@ namespace DVSim {
                     bool visible = angled ? ProjectAngled(x,y,z,range,width,height,cameraHeight,cameraTilt,out pixel) : Project(x,y,z,topDown,range,width,height,out pixel);
                     if (!visible) continue;
                     double distance=Math.Sqrt(x*x+y*y+z*z);
-                    int bucket=distance < range/3 ? 0 : (distance < range*2/3 ? 1 : 2);
+                    int bucket=DistanceColorIndex(distance);
                     var context=contexts[bucket]; double size=1.4;
                     context.BeginFigure(new Point(pixel.X-size,pixel.Y-size), true, true);
                     context.LineTo(new Point(pixel.X+size,pixel.Y-size), true, false);
@@ -289,7 +309,7 @@ namespace DVSim {
                 }
             } finally { foreach (var context in contexts) context.Close(); }
             for (int i=0; i<colors.Length; i++) { geometry[i].Freeze(); drawing.DrawGeometry(colors[i],null,geometry[i]); }
-            drawing.DrawEllipse(colors[0], null, new Point(width/2,height/2), 3,3);
+            drawing.DrawEllipse(Brushes.White, null, new Point(width/2,height/2), 3,3);
         }
     }
 }

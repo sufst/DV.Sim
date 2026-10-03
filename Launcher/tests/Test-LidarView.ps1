@@ -16,7 +16,7 @@ $bitmap.Render($plot)
 $pixels = New-Object byte[] (600 * 400 * 4)
 $bitmap.CopyPixels($pixels, 600 * 4, 0)
 $offset = (170 * 600 + 240) * 4
-if ($pixels[$offset + 1] -lt 200 -or $pixels[$offset + 2] -lt 80) {
+if ($pixels[$offset + 1] -lt 200 -or $pixels[$offset + 2] -lt 40) {
     throw 'The WPF renderer did not draw the projected lidar return.'
 }
 $plot.Range = 5

@@ -95,6 +95,13 @@ public static class LidarViewChecks {
         Check((ulong)numberArray[3]==9007199254740993UL,"Timestamp precision was lost.");
         Reject("dc 00 02 01"); Reject("dd 7f ff ff ff"); Reject("81 ab 70 6f 69 6e 74 5f 63 6c 6f 75 64 92 01 02");
         Point pixel;
+        Check(LidarPlot.DistanceColorIndex(0)==0 && LidarPlot.DistanceColorIndex(200)==127,"Colour scale must cover the sensor range.");
+        Check(LidarPlot.DistanceColorIndex(3)-LidarPlot.DistanceColorIndex(2) > LidarPlot.DistanceColorIndex(101)-LidarPlot.DistanceColorIndex(100),"Nearby distance changes must have greater colour sensitivity.");
+        int previousColour = -1;
+        for (int metres=0; metres<=200; metres++) {
+            int colour = LidarPlot.DistanceColorIndex(metres);
+            Check(colour>=previousColour,"Distance colours must progress monotonically."); previousColour=colour;
+        }
         Check(LidarPlot.Project(10,0,0,false,40,600,400,out pixel) && pixel.X==300 && pixel.Y==200,"Forward point should be centred.");
         Check(LidarPlot.Project(10,2,1,false,40,600,400,out pixel) && pixel.X<300 && pixel.Y<200,"Left/up sensor axes must map left/up.");
         Check(!LidarPlot.Project(-10,0,0,false,40,600,400,out pixel),"POV must exclude points behind the sensor.");
