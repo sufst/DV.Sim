@@ -71,6 +71,8 @@ The sensor's API name remains `Lidar`; GPS and other non-lidar sensors from shar
 The settings panel uses Windows PowerShell and WPF, which are included with
 Windows; no Python installation is needed. Preferences and generated settings
 live in ignored `FSOnline/Saved/RunSettings/`. Shared `settings.json` stays intact.
+The simulator launches with that local folder as its working directory so FSDS
+loads its `settings.json` directly; no command-line settings override is used.
 Deleting that local folder resets the preferences.
 
 To run configuration checks:

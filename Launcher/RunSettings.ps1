@@ -70,8 +70,9 @@ function Start-Simulator {
     if (-not (Test-Path -LiteralPath $executable)) { throw 'FSDS.exe is missing from this checkout.' }
     Write-RunJson $script:runtimePath (New-SimulatorSettings $script:basePath $script:preference)
     $mode = if ($Fullscreen) { '-fullscreen' } else { '-windowed -ResX=1280 -ResY=720 -WinX=0 -WinY=0' }
-    # Start-Process joins arguments on Windows, so quote the settings path explicitly.
-    [void](Start-Process -FilePath $executable -WorkingDirectory $script:repoRoot -ArgumentList "$mode -settings `"$script:runtimePath`"")
+    # This FSDS build crashes on map startup with the -settings file override.
+    # Its supported LaunchDir fallback reads settings.json from the working directory.
+    [void](Start-Process -FilePath $executable -WorkingDirectory $script:localDirectory -ArgumentList $mode)
     Position-SimulatorOnStartup
     $script:dirty = $false
 }
