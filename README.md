@@ -16,6 +16,11 @@ This will create a DV.Sim folder in your local User folder.
 
 ## Running the simulator
 
+The simulator writes local settings, logs and crash reports into `FSOnline/Saved/`.
+These files are ignored by Git, along with Python caches and local environments,
+so running the simulator or a controller does not add runtime files to Git status.
+Keep shared sensor configuration in the tracked `settings.json`.
+
 - Open **FSDS.exe** to run the simulator
 - Select your map/level
 - Click **Run Simulation** to start it up
