@@ -231,6 +231,11 @@
               </Border>
             </Grid>
           </Border>
+          <DockPanel Margin="0,8,0,0">
+            <Button Name="ResetViewButton" DockPanel.Dock="Right" Content="Reset view" FontSize="11" Padding="12,6"/>
+            <TextBlock Name="ZoomLabel" DockPanel.Dock="Right" Text="1.0x" Foreground="#C8B9FF" FontSize="11" Margin="0,0,12,0" VerticalAlignment="Center"/>
+            <TextBlock Text="Scroll to zoom / hold left click and drag to move" Style="{StaticResource Muted}" FontSize="10" VerticalAlignment="Center"/>
+          </DockPanel>
           <Grid Margin="0,15,0,0">
             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
             <TextBlock Text="View range" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>

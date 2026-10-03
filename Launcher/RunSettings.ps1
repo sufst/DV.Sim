@@ -216,9 +216,12 @@ try {
     $script:lidarPlot = New-Object DVSim.LidarPlot
     $script:lidarPlot.Angled = $true
     [void]$script:ui.LidarPlotHost.Children.Add($script:lidarPlot)
+    $script:lidarPlot.Add_ViewChanged({ $script:ui.ZoomLabel.Text = '{0:0.0}x' -f $script:lidarPlot.Zoom })
+    $script:ui.ResetViewButton.Add_Click({ $script:lidarPlot.ResetView() })
     $script:ui.RunSettingsNav.Add_Click({ Show-Page 'Home' })
     $script:ui.LiveLidarButton.Add_Click({ Show-Page 'Visuals' })
     $script:ui.PovButton.Add_Click({
+        $script:lidarPlot.ResetView()
         $script:ui.RaisedViewControls.Visibility = 'Collapsed'
         $script:lidarPlot.Angled = $false
         $script:lidarPlot.TopDown = $false
@@ -226,6 +229,7 @@ try {
         $script:ui.AngledButton.Background = '#202C40'
     })
     $script:ui.TopDownButton.Add_Click({
+        $script:lidarPlot.ResetView()
         $script:ui.RaisedViewControls.Visibility = 'Collapsed'
         $script:lidarPlot.Angled = $false
         $script:lidarPlot.TopDown = $true
@@ -233,6 +237,7 @@ try {
         $script:ui.AngledButton.Background = '#202C40'
     })
     $script:ui.AngledButton.Add_Click({
+        $script:lidarPlot.ResetView()
         $script:ui.RaisedViewControls.Visibility = 'Visible'
         $script:lidarPlot.Angled = $true
         $script:ui.PovButton.Background = '#202C40'; $script:ui.TopDownButton.Background = '#202C40'

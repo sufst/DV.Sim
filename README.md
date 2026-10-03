@@ -75,8 +75,16 @@ All three views use
 the [actual sensor-frame XYZ returns](https://fs-driverless.github.io/Formula-Student-Driverless-Simulator/v2.2.0/lidar/),
 not a camera image or ground-truth map.
 
-The viewer polls at up to 5 Hz while its page is open. It reads every returned
-point and draws up to 18,000 per frame to keep the window responsive. It only
+Scroll over the plot to zoom around the cursor (0.25x to 32x). Hold the left mouse
+button and drag to move around the view. **Reset view** restores the initial zoom
+and centre; switching viewpoints also resets navigation. Height, tilt and view
+range remain unchanged. Zooming magnifies the scan; it does not change the sensor.
+
+The viewer polls at up to 5 Hz while its page is open. It checks every returned
+point and draws every valid return inside the current view and range, with no
+point-skipping limit. Zooming separates overlapping dots and reveals the full
+detail available in that scan; it cannot add returns the sensor did not measure.
+It only
 reads car state and lidar data; it does not acquire API control or command the
 car. Leaving the page or closing the settings window disconnects it. No Python
 packages or additional runtime installation are needed.

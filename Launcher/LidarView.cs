@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace DVSim {
@@ -215,12 +216,17 @@ namespace DVSim {
         double cameraHeight = 1.2;
         double cameraTilt = 15;
         double range = 200;
+        double zoom = 1, panX, panY;
+        bool panning;
+        Point previousMouse;
         const int ColorCount = 128;
         readonly Brush[] colors;
         readonly Pen gridPen;
         readonly Brush background;
         public LidarPlot() {
             ClipToBounds = true;
+            Focusable = true;
+            Cursor = Cursors.Hand;
             colors = new Brush[ColorCount];
             for (int i=0; i<ColorCount; i++) colors[i] = new SolidColorBrush(PaletteColor(i));
             foreach (var color in colors) color.Freeze();
@@ -232,6 +238,44 @@ namespace DVSim {
         public double CameraHeight { get { return cameraHeight; } set { cameraHeight = Math.Max(0, Math.Min(5, value)); InvalidateVisual(); } }
         public double CameraTilt { get { return cameraTilt; } set { cameraTilt = Math.Max(0, Math.Min(45, value)); InvalidateVisual(); } }
         public double Range { get { return range; } set { range = Math.Max(5, Math.Min(200, value)); InvalidateVisual(); } }
+        public double Zoom { get { return zoom; } }
+        public double PanX { get { return panX; } }
+        public double PanY { get { return panY; } }
+        public int RenderedPointCount { get; private set; }
+        public event EventHandler ViewChanged;
+        void NotifyViewChanged() {
+            InvalidateVisual();
+            if (ViewChanged != null) ViewChanged(this, EventArgs.Empty);
+        }
+        public void ResetView() { zoom = 1; panX = panY = 0; NotifyViewChanged(); }
+        public void ZoomAt(double factor, Point anchor) {
+            if (Double.IsNaN(factor) || Double.IsInfinity(factor) || factor <= 0) return;
+            double next = Math.Max(0.25, Math.Min(32, zoom*factor));
+            double ratio = next/zoom, x = anchor.X-ActualWidth/2, y = anchor.Y-ActualHeight/2;
+            panX = x-(x-panX)*ratio; panY = y-(y-panY)*ratio;
+            zoom = next; NotifyViewChanged();
+        }
+        public void PanBy(double x, double y) { panX += x; panY += y; NotifyViewChanged(); }
+        protected override void OnMouseWheel(MouseWheelEventArgs e) {
+            ZoomAt(Math.Pow(1.2, e.Delta/120.0), e.GetPosition(this)); e.Handled = true;
+        }
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e) {
+            Focus(); previousMouse = e.GetPosition(this); panning = CaptureMouse();
+            if (panning) { Cursor = Cursors.SizeAll; e.Handled = true; }
+        }
+        protected override void OnMouseMove(MouseEventArgs e) {
+            if (!panning) return;
+            Point current = e.GetPosition(this);
+            PanBy(current.X-previousMouse.X, current.Y-previousMouse.Y);
+            previousMouse = current; e.Handled = true;
+        }
+        protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) {
+            if (!panning) return;
+            ReleaseMouseCapture(); e.Handled = true;
+        }
+        protected override void OnLostMouseCapture(MouseEventArgs e) {
+            panning = false; Cursor = Cursors.Hand; base.OnLostMouseCapture(e);
+        }
         public void SetPoints(double[] value) { points = value ?? new double[0]; InvalidateVisual(); }
         // Fixed physical scale: logarithmic spacing highlights small nearby changes.
         public static int DistanceColorIndex(double distance) {
@@ -253,52 +297,59 @@ namespace DVSim {
         }
         // Sensor frame: +X forward, +Y left, +Z up. No vehicle/world transform is applied.
         public static bool Project(double x, double y, double z, bool topDown, double range, double width, double height, out Point pixel) {
-            pixel = new Point();
-            if (Double.IsNaN(x) || Double.IsNaN(y) || Double.IsNaN(z) || Double.IsInfinity(x) || Double.IsInfinity(y) || Double.IsInfinity(z)) return false;
-            double distance = Math.Sqrt(x*x + y*y + z*z);
-            if (distance > range || distance < 0.05) return false;
-            double u, v;
-            if (topDown) { double scale = Math.Min(width, height) * 0.45 / range; u = width/2 - y*scale; v = height/2 - x*scale; }
-            else { if (x <= 0.05) return false; double focal = width * 0.5; u = width/2 - y/x*focal; v = height/2 - z/x*focal; }
-            if (u < 1 || v < 1 || u >= width-1 || v >= height-1) return false;
-            pixel = new Point(u, v); return true;
+            return ProjectView(x,y,z,topDown,false,range,width,height,1.2,15,1,0,0,out pixel);
         }
         public static bool ProjectAngled(double x, double y, double z, double range, double width, double height, out Point pixel) {
             return ProjectAngled(x,y,z,range,width,height,1.2,15,out pixel);
         }
         public static bool ProjectAngled(double x, double y, double z, double range, double width, double height, double cameraHeight, double cameraTilt, out Point pixel) {
+            return ProjectView(x,y,z,false,true,range,width,height,cameraHeight,cameraTilt,1,0,0,out pixel);
+        }
+        public static bool ProjectView(double x, double y, double z, bool topDown, bool raised, double range, double width, double height,
+            double cameraHeight, double cameraTilt, double zoom, double panX, double panY, out Point pixel) {
             pixel = new Point();
             if (Double.IsNaN(x) || Double.IsNaN(y) || Double.IsNaN(z) || Double.IsInfinity(x) || Double.IsInfinity(y) || Double.IsInfinity(z)) return false;
             double distance = Math.Sqrt(x*x + y*y + z*z);
             if (distance > range || distance < 0.05) return false;
-            // Follow the sensor's heading from 2 m behind it.
-            // Height and downward tilt move only the viewing camera.
-            double tilt = cameraTilt * Math.PI / 180;
-            double dx = x + 2, dz = z - cameraHeight;
-            double forward = dx*Math.Cos(tilt) - dz*Math.Sin(tilt);
-            double up = dx*Math.Sin(tilt) + dz*Math.Cos(tilt);
-            if (forward <= 0.05) return false;
-            double focal = width * 0.5;
-            pixel = new Point(width/2 - y/forward*focal, height/2 - up/forward*focal);
+            double u, v;
+            if (raised) {
+                // Follow the heading from 2 m behind; camera changes only affect the view.
+                double tilt = cameraTilt*Math.PI/180, dx = x+2, dz = z-cameraHeight;
+                double forward = dx*Math.Cos(tilt)-dz*Math.Sin(tilt), up = dx*Math.Sin(tilt)+dz*Math.Cos(tilt);
+                if (forward <= 0.05) return false;
+                double focal = width*0.5;
+                u = width/2-y/forward*focal; v = height/2-up/forward*focal;
+            } else if (topDown) {
+                double scale = Math.Min(width,height)*0.45/range;
+                u = width/2-y*scale; v = height/2-x*scale;
+            } else {
+                if (x <= 0.05) return false;
+                double focal = width*0.5;
+                u = width/2-y/x*focal; v = height/2-z/x*focal;
+            }
+            // Clip after navigation so points outside the original view can pan into sight.
+            pixel = new Point(width/2+(u-width/2)*zoom+panX, height/2+(v-height/2)*zoom+panY);
             return pixel.X >= 1 && pixel.Y >= 1 && pixel.X < width-1 && pixel.Y < height-1;
         }
         protected override void OnRender(DrawingContext drawing) {
+            RenderedPointCount = 0;
             double width = ActualWidth, height = ActualHeight;
             if (width <= 0 || height <= 0) return;
             drawing.DrawRectangle(background, null, new Rect(0,0,width,height));
-            for (int i=1; i<8; i++) {
-                drawing.DrawLine(gridPen, new Point(width*i/8,0), new Point(width*i/8,height));
-                drawing.DrawLine(gridPen, new Point(0,height*i/8), new Point(width,height*i/8));
-            }
+            double stepX = width/8*zoom, stepY = height/8*zoom;
+            double firstX = ((width/2+panX)%stepX+stepX)%stepX, firstY = ((height/2+panY)%stepY+stepY)%stepY;
+            for (double x=firstX; x<width; x+=stepX) drawing.DrawLine(gridPen,new Point(x,0),new Point(x,height));
+            for (double y=firstY; y<height; y+=stepY) drawing.DrawLine(gridPen,new Point(0,y),new Point(width,y));
             var geometry = new StreamGeometry[colors.Length]; var contexts = new StreamGeometryContext[colors.Length];
             for (int i=0; i<colors.Length; i++) { geometry[i]=new StreamGeometry(); contexts[i]=geometry[i].Open(); }
             try {
-                // Bound rendering work; acquisition still reads every scan point.
-                int count = points.Length/3, stride = Math.Max(1, (count + 17999)/18000);
-                for (int i=0; i<count; i+=stride) {
+                // Inspect every return in the current scan, including points revealed by zoom/pan.
+                int count = points.Length/3;
+                for (int i=0; i<count; i++) {
                     double x=points[i*3], y=points[i*3+1], z=points[i*3+2]; Point pixel;
-                    bool visible = angled ? ProjectAngled(x,y,z,range,width,height,cameraHeight,cameraTilt,out pixel) : Project(x,y,z,topDown,range,width,height,out pixel);
+                    bool visible = ProjectView(x,y,z,topDown,angled,range,width,height,cameraHeight,cameraTilt,zoom,panX,panY,out pixel);
                     if (!visible) continue;
+                    RenderedPointCount++;
                     double distance=Math.Sqrt(x*x+y*y+z*z);
                     int bucket=DistanceColorIndex(distance);
                     var context=contexts[bucket]; double size=1.4;
@@ -309,7 +360,7 @@ namespace DVSim {
                 }
             } finally { foreach (var context in contexts) context.Close(); }
             for (int i=0; i<colors.Length; i++) { geometry[i].Freeze(); drawing.DrawGeometry(colors[i],null,geometry[i]); }
-            drawing.DrawEllipse(Brushes.White, null, new Point(width/2,height/2), 3,3);
+            drawing.DrawEllipse(Brushes.White, null, new Point(width/2+panX,height/2+panY), 3,3);
         }
     }
 }

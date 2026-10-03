@@ -118,6 +118,10 @@ public static class LidarViewChecks {
         Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,0,0,out levelView) && levelView.Y==200,"Level raised camera must centre points at its height.");
         Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,2,0,out higherView) && higherView.Y>levelView.Y,"Raising the camera must move lower returns down the view.");
         Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,2,15,out tiltedView) && tiltedView.Y<higherView.Y,"Looking downward must move those returns up the view.");
+        Check(!LidarPlot.Project(10,15,0,false,40,600,400,out pixel),"Test return must begin outside the sensor viewport.");
+        Check(LidarPlot.ProjectView(10,15,0,false,false,40,600,400,1.2,15,1,450,0,out pixel) && pixel.X==300,"Panning must reveal returns outside the original viewport.");
+        Check(LidarPlot.ProjectView(10,15,0,false,false,40,600,400,1.2,15,0.25,0,0,out pixel),"Zooming out must reveal more of the scan.");
+        Check(!LidarPlot.ProjectView(50,0,0,true,false,40,600,400,1.2,15,0.25,0,0,out pixel),"Zooming out must still respect the sensor view range.");
         using(var server=new Server()) using(var feed=new LidarFeed(server.Port)) {
             WaitFor(feed,"Live"); Check(feed.Latest.Points.Length==9 && feed.Latest.Timestamp>9007199254740993UL,"Real RPC data must reach the feed.");
             server.Mode=2; WaitFor(feed,"Paused");
