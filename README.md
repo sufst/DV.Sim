@@ -60,9 +60,14 @@ a running simulation without a lidar shows **Add a lidar first**. Paused or stal
 scans clear the view and prompt you to resume the run.
 
 **Sensor POV** looks forward along the lidar's own X axis, with Y to the left and
-Z up. **Top-down / 360 degrees** shows returns around the sensor. These are raw
-lidar points; the viewer does not classify cones. The view-range slider clips
-distant returns; dots are coloured by distance. Both views use
+Z up. **Top-down / 360 degrees** shows returns around the sensor. **Raised POV**
+is the first and default view. It looks forward from 2 m behind and initially
+1.2 m above the lidar, tilted downward by 15 degrees. Its sliders adjust height
+from 0 to 5 m and downward tilt from 0 to 45 degrees while viewing live returns.
+Top-down is second and Sensor POV is third. Raised POV follows the sensor's
+heading and does not change its placement. Reduce the view range to inspect nearby clusters. These are
+raw lidar points; the viewer does not classify cones. The view-range
+slider clips distant returns; dots are coloured by distance. All three views use
 the [actual sensor-frame XYZ returns](https://fs-driverless.github.io/Formula-Student-Driverless-Simulator/v2.2.0/lidar/),
 not a camera image or ground-truth map.
 

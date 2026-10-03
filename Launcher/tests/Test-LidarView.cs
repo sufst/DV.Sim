@@ -101,6 +101,16 @@ public static class LidarViewChecks {
         Check(LidarPlot.Project(-10,0,0,true,40,600,400,out pixel) && pixel.Y>200,"Top-down must include rear returns.");
         Check(!LidarPlot.Project(Double.NaN,0,0,false,40,600,400,out pixel),"Non-finite points must be skipped.");
         Check(!LidarPlot.Project(50,0,0,false,40,600,400,out pixel),"View range must filter distant points.");
+        Point raisedCentre, raisedLeft, raisedUp;
+        Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,out raisedCentre) && raisedCentre.X==300,"Raised POV must keep the sensor heading.");
+        Check(LidarPlot.ProjectAngled(10,2,0,40,600,400,out raisedLeft) && raisedLeft.X<raisedCentre.X,"Raised POV must preserve the left axis.");
+        Check(LidarPlot.ProjectAngled(10,0,1,40,600,400,out raisedUp) && raisedUp.Y<raisedCentre.Y,"Raised POV must preserve the up axis.");
+        Check(!LidarPlot.ProjectAngled(-10,0,0,40,600,400,out pixel),"Raised POV must exclude points behind the camera.");
+        Check(!LidarPlot.ProjectAngled(50,0,0,40,600,400,out pixel),"Raised POV must obey the view range.");
+        Point levelView, higherView, tiltedView;
+        Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,0,0,out levelView) && levelView.Y==200,"Level raised camera must centre points at its height.");
+        Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,2,0,out higherView) && higherView.Y>levelView.Y,"Raising the camera must move lower returns down the view.");
+        Check(LidarPlot.ProjectAngled(10,0,0,40,600,400,2,15,out tiltedView) && tiltedView.Y<higherView.Y,"Looking downward must move those returns up the view.");
         using(var server=new Server()) using(var feed=new LidarFeed(server.Port)) {
             WaitFor(feed,"Live"); Check(feed.Latest.Points.Length==9 && feed.Latest.Timestamp>9007199254740993UL,"Real RPC data must reach the feed.");
             server.Mode=2; WaitFor(feed,"Paused");

@@ -211,6 +211,9 @@ namespace DVSim {
     public sealed class LidarPlot : FrameworkElement {
         double[] points = new double[0];
         bool topDown;
+        bool angled;
+        double cameraHeight = 1.2;
+        double cameraTilt = 15;
         double range = 40;
         readonly Brush[] colors;
         readonly Pen gridPen;
@@ -223,6 +226,9 @@ namespace DVSim {
             background = new SolidColorBrush(Color.FromRgb(9,17,29)); background.Freeze();
         }
         public bool TopDown { get { return topDown; } set { topDown = value; InvalidateVisual(); } }
+        public bool Angled { get { return angled; } set { angled = value; InvalidateVisual(); } }
+        public double CameraHeight { get { return cameraHeight; } set { cameraHeight = Math.Max(0, Math.Min(5, value)); InvalidateVisual(); } }
+        public double CameraTilt { get { return cameraTilt; } set { cameraTilt = Math.Max(0, Math.Min(45, value)); InvalidateVisual(); } }
         public double Range { get { return range; } set { range = Math.Max(5, Math.Min(200, value)); InvalidateVisual(); } }
         public void SetPoints(double[] value) { points = value ?? new double[0]; InvalidateVisual(); }
         // Sensor frame: +X forward, +Y left, +Z up. No vehicle/world transform is applied.
@@ -236,6 +242,25 @@ namespace DVSim {
             else { if (x <= 0.05) return false; double focal = width * 0.5; u = width/2 - y/x*focal; v = height/2 - z/x*focal; }
             if (u < 1 || v < 1 || u >= width-1 || v >= height-1) return false;
             pixel = new Point(u, v); return true;
+        }
+        public static bool ProjectAngled(double x, double y, double z, double range, double width, double height, out Point pixel) {
+            return ProjectAngled(x,y,z,range,width,height,1.2,15,out pixel);
+        }
+        public static bool ProjectAngled(double x, double y, double z, double range, double width, double height, double cameraHeight, double cameraTilt, out Point pixel) {
+            pixel = new Point();
+            if (Double.IsNaN(x) || Double.IsNaN(y) || Double.IsNaN(z) || Double.IsInfinity(x) || Double.IsInfinity(y) || Double.IsInfinity(z)) return false;
+            double distance = Math.Sqrt(x*x + y*y + z*z);
+            if (distance > range || distance < 0.05) return false;
+            // Follow the sensor's heading from 2 m behind it.
+            // Height and downward tilt move only the viewing camera.
+            double tilt = cameraTilt * Math.PI / 180;
+            double dx = x + 2, dz = z - cameraHeight;
+            double forward = dx*Math.Cos(tilt) - dz*Math.Sin(tilt);
+            double up = dx*Math.Sin(tilt) + dz*Math.Cos(tilt);
+            if (forward <= 0.05) return false;
+            double focal = width * 0.5;
+            pixel = new Point(width/2 - y/forward*focal, height/2 - up/forward*focal);
+            return pixel.X >= 1 && pixel.Y >= 1 && pixel.X < width-1 && pixel.Y < height-1;
         }
         protected override void OnRender(DrawingContext drawing) {
             double width = ActualWidth, height = ActualHeight;
@@ -252,7 +277,7 @@ namespace DVSim {
                 int count = points.Length/3, stride = Math.Max(1, (count + 17999)/18000);
                 for (int i=0; i<count; i+=stride) {
                     double x=points[i*3], y=points[i*3+1], z=points[i*3+2]; Point pixel;
-                    bool visible = Project(x,y,z,topDown,range,width,height,out pixel);
+                    bool visible = angled ? ProjectAngled(x,y,z,range,width,height,cameraHeight,cameraTilt,out pixel) : Project(x,y,z,topDown,range,width,height,out pixel);
                     if (!visible) continue;
                     double distance=Math.Sqrt(x*x+y*y+z*z);
                     int bucket=distance < range/3 ? 0 : (distance < range*2/3 ? 1 : 2);

@@ -201,11 +201,24 @@
             </Border>
             <TextBlock Text="Lidar map" FontSize="30" FontWeight="SemiBold"/>
           </DockPanel>
-          <TextBlock Text="Live returns from the lidar's point of view." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,18"/>
+          <TextBlock Text="Explore live lidar returns from three viewpoints." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,18"/>
           <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-            <Button Name="PovButton" Content="Sensor POV" FontSize="12" Padding="16,9" Background="#34415D" Foreground="#C8B9FF"/>
+            <Button Name="AngledButton" Content="Raised POV" FontSize="12" Padding="16,9" Background="#34415D" Foreground="#C8B9FF"/>
             <Button Name="TopDownButton" Content="Top-down / 360&#176;" FontSize="12" Padding="16,9" Margin="10,0,0,0"/>
+            <Button Name="PovButton" Content="Sensor POV" FontSize="12" Padding="16,9" Margin="10,0,0,0"/>
           </StackPanel>
+          <Border Name="RaisedViewControls" Background="#131E2E" CornerRadius="10" Padding="14,10" Margin="0,0,0,14">
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+              <TextBlock Text="Height above lidar" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center"/>
+              <Slider Name="CameraHeightSlider" Grid.Column="1" Minimum="0" Maximum="5" Value="1.2" SmallChange="0.1" Margin="16,0" VerticalAlignment="Center" AutomationProperties.Name="Raised POV height above lidar in metres"/>
+              <TextBlock Name="CameraHeightLabel" Grid.Column="2" Text="1.2 m" Foreground="#C8B9FF" MinWidth="50" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="1" Text="Downward tilt" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="0,10,0,0"/>
+              <Slider Name="CameraTiltSlider" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="45" Value="15" SmallChange="1" Margin="16,10,16,0" VerticalAlignment="Center" AutomationProperties.Name="Raised POV downward tilt in degrees"/>
+              <TextBlock Name="CameraTiltLabel" Grid.Row="1" Grid.Column="2" Text="15&#176;" Foreground="#C8B9FF" VerticalAlignment="Center" Margin="0,10,0,0"/>
+            </Grid>
+          </Border>
           <Border CornerRadius="14" BorderBrush="#33425A" BorderThickness="1" Background="#09111D" ClipToBounds="True">
             <Grid Height="350">
               <Grid Name="LidarPlotHost" Margin="8"/>

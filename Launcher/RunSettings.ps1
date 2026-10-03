@@ -214,16 +214,37 @@ try {
     $script:ui = @{}
     foreach ($node in $markup.SelectNodes('//*[@Name]')) { $script:ui[$node.Name] = $script:window.FindName($node.Name) }
     $script:lidarPlot = New-Object DVSim.LidarPlot
+    $script:lidarPlot.Angled = $true
     [void]$script:ui.LidarPlotHost.Children.Add($script:lidarPlot)
     $script:ui.RunSettingsNav.Add_Click({ Show-Page 'Home' })
     $script:ui.LiveLidarButton.Add_Click({ Show-Page 'Visuals' })
     $script:ui.PovButton.Add_Click({
+        $script:ui.RaisedViewControls.Visibility = 'Collapsed'
+        $script:lidarPlot.Angled = $false
         $script:lidarPlot.TopDown = $false
         $script:ui.PovButton.Background = '#34415D'; $script:ui.TopDownButton.Background = '#202C40'
+        $script:ui.AngledButton.Background = '#202C40'
     })
     $script:ui.TopDownButton.Add_Click({
+        $script:ui.RaisedViewControls.Visibility = 'Collapsed'
+        $script:lidarPlot.Angled = $false
         $script:lidarPlot.TopDown = $true
         $script:ui.PovButton.Background = '#202C40'; $script:ui.TopDownButton.Background = '#34415D'
+        $script:ui.AngledButton.Background = '#202C40'
+    })
+    $script:ui.AngledButton.Add_Click({
+        $script:ui.RaisedViewControls.Visibility = 'Visible'
+        $script:lidarPlot.Angled = $true
+        $script:ui.PovButton.Background = '#202C40'; $script:ui.TopDownButton.Background = '#202C40'
+        $script:ui.AngledButton.Background = '#34415D'
+    })
+    $script:ui.CameraHeightSlider.Add_ValueChanged({
+        $script:lidarPlot.CameraHeight = $script:ui.CameraHeightSlider.Value
+        $script:ui.CameraHeightLabel.Text = '{0:0.0} m' -f $script:lidarPlot.CameraHeight
+    })
+    $script:ui.CameraTiltSlider.Add_ValueChanged({
+        $script:lidarPlot.CameraTilt = $script:ui.CameraTiltSlider.Value
+        $script:ui.CameraTiltLabel.Text = ('{0:0}' -f $script:lidarPlot.CameraTilt) + [char]0x00B0
     })
     $script:ui.ViewRangeSlider.Add_ValueChanged({
         $script:lidarPlot.Range = $script:ui.ViewRangeSlider.Value
