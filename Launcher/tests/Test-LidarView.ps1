@@ -4,7 +4,10 @@ $references = @('System.dll', 'System.Core.dll', [Windows.Point].Assembly.Locati
     [Windows.Media.Brush].Assembly.Location, [Windows.FrameworkElement].Assembly.Location,
     [System.Xaml.XamlReader].Assembly.Location)
 Add-Type -Path @((Join-Path (Split-Path -Parent $PSScriptRoot) 'LidarView.cs'),
+    (Join-Path (Split-Path -Parent $PSScriptRoot) 'CentrelineFollower.cs'),
+    (Join-Path $PSScriptRoot 'Test-CentrelineFollower.cs'),
     (Join-Path $PSScriptRoot 'Test-LidarView.cs')) -ReferencedAssemblies $references
+[CentrelineFollowerChecks]::Run()
 [LidarViewChecks]::Run()
 $plot = New-Object DVSim.LidarPlot
 $plot.SetPoints([double[]]@(10, 2, 1))

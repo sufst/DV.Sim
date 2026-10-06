@@ -26,12 +26,23 @@ public static class LidarViewChecks {
         while (DateTime.UtcNow < deadline) { if (feed.Latest.Status == status) return; Thread.Sleep(25); }
         throw new Exception("Expected " + status + "; received " + feed.Latest.Status);
     }
+    static void WaitUntil(Func<bool> ready, string message) {
+        DateTime deadline = DateTime.UtcNow.AddSeconds(6);
+        while (DateTime.UtcNow < deadline) { if (ready()) return; Thread.Sleep(25); }
+        throw new Exception(message);
+    }
     sealed class Server : IDisposable {
         readonly TcpListener listener = new TcpListener(IPAddress.Loopback,0);
         readonly Thread worker;
         TcpClient active;
         volatile bool stop;
         public volatile int Mode; // 0 live, 1 missing lidar, 2 frozen, 3 empty, 4 disconnected.
+        public volatile bool ApiEnabled;
+        public volatile int ControlsSeen;
+        public volatile int TrackMode; // 0 offset centreline, 1 no cones, 2 malformed pose.
+        public double LastThrottle;
+        public double LastBrake;
+        public double LastSteering;
         public int Port { get; private set; }
         ulong timestamp = 9007199254740993UL;
         public Server() {
@@ -47,6 +58,19 @@ public static class LidarViewChecks {
         static void Float(Stream stream, double value) {
             stream.WriteByte(0xcb); byte[] bytes=BitConverter.GetBytes(value); if(BitConverter.IsLittleEndian) Array.Reverse(bytes); stream.Write(bytes,0,8);
         }
+        static void Value(Stream stream, object value) {
+            if(value==null) stream.WriteByte(0xc0);
+            else if(value is System.Collections.Generic.Dictionary<string,object>) {
+                var map=(System.Collections.Generic.Dictionary<string,object>)value;
+                stream.WriteByte((byte)(0x80|map.Count));
+                foreach(var entry in map) { Text(stream,entry.Key); Value(stream,entry.Value); }
+            } else if(value is object[]) {
+                var array=(object[])value;
+                if(array.Length<16) stream.WriteByte((byte)(0x90|array.Length));
+                else { stream.WriteByte(0xdc); stream.WriteByte((byte)(array.Length>>8)); stream.WriteByte((byte)array.Length); }
+                foreach(object item in array) Value(stream,item);
+            } else Float(stream,Convert.ToDouble(value));
+        }
         void Serve() {
             while(!stop) {
                 try {
@@ -57,23 +81,49 @@ public static class LidarViewChecks {
                             object[] request=(object[])reader.ReadMessage();
                             Check(request.Length==4 && Convert.ToInt32(request[0])==0,"RPC request envelope is incorrect.");
                             string method=(string)request[2]; var args=(object[])request[3];
-                            Check(method=="getCarState" || method=="getLidarData","Viewer must only request read-only car/lidar data.");
-                            Check(args.Length==(method=="getCarState"?1:2),"RPC argument count is incorrect.");
-                            Check((string)args[args.Length-1]=="FSCar","Vehicle argument is incorrect.");
+                            Check(method=="getCarState" || method=="getLidarData" || method=="enableApiControl" || method=="setCarControls" || method=="getRefereeState" || method=="simGetGroundTruthKinematics","Unexpected RPC method.");
                             if(Mode==4) break;
+                            if(method=="getCarState") {
+                                Check(args.Length==1 && (string)args[0]=="FSCar","Car-state argument is incorrect.");
+                            } else if(method=="getLidarData") {
+                                Check(args.Length==2 && (string)args[0]=="Lidar" && (string)args[1]=="FSCar","Lidar arguments are incorrect.");
+                            } else if(method=="enableApiControl") {
+                                Check(args.Length==2 && args[0] is bool && (string)args[1]=="FSCar","API-control arguments are incorrect.");
+                                ApiEnabled=(bool)args[0];
+                            } else if(method=="getRefereeState") {
+                                Check(args.Length==0,"Referee state must have no arguments.");
+                            } else if(method=="simGetGroundTruthKinematics") {
+                                Check(args.Length==1 && (string)args[0]=="FSCar","Ground truth pose argument is incorrect.");
+                            } else {
+                                Check(args.Length==2 && args[0] is System.Collections.Generic.Dictionary<string,object> && (string)args[1]=="FSCar","Car-control arguments are incorrect.");
+                                var controls=(System.Collections.Generic.Dictionary<string,object>)args[0];
+                                Check(controls.ContainsKey("throttle") && controls.ContainsKey("steering") && controls.ContainsKey("brake"),"Car controls must include throttle, steering and brake.");
+                                LastThrottle=Convert.ToDouble(controls["throttle"]);
+                                LastBrake=Convert.ToDouble(controls["brake"]);
+                                LastSteering=Convert.ToDouble(controls["steering"]);
+                                ControlsSeen++;
+                            }
                             using(var response=new MemoryStream()) {
                                 response.WriteByte(0x94); response.WriteByte(1); Integer(response,Convert.ToUInt64(request[1]));
                                 if(Mode==1 && method=="getLidarData") { Text(response,"No lidar named Lidar"); response.WriteByte(0xc0); }
                                 else {
                                     response.WriteByte(0xc0);
-                                    if(method=="getCarState") { response.WriteByte(0x81); Text(response,"timestamp"); Integer(response,timestamp); }
+                                    if(method=="getCarState") { if(Mode!=2) timestamp++; response.WriteByte(0x82); Text(response,"timestamp"); Integer(response,timestamp); Text(response,"speed"); Float(response,0.25); }
+                                    else if(method=="getRefereeState") {
+                                        var track=(System.Collections.Generic.Dictionary<string,object>)CentrelineFollowerChecks.StraightTrack(0.7);
+                                        if(TrackMode==1) track["cones"]=new object[0];
+                                        Value(response,track);
+                                    } else if(method=="simGetGroundTruthKinematics") {
+                                        Value(response,TrackMode==2 ? new System.Collections.Generic.Dictionary<string,object>() : CentrelineFollowerChecks.Pose(0,0,0));
+                                    }
                                     else {
-                                        Check((string)args[0]=="Lidar","Lidar API name is incorrect.");
-                                        if(Mode!=2) timestamp++;
-                                        response.WriteByte(0x82); Text(response,"time_stamp"); Integer(response,timestamp);
-                                        Text(response,"point_cloud");
-                                        if(Mode==3) response.WriteByte(0x90);
-                                        else { response.WriteByte(0x99); foreach(double point in new double[]{10,0,0,10,2,1,5,-2,1}) Float(response,point); }
+                                        if(method=="getLidarData") {
+                                            if(Mode!=2) timestamp++;
+                                            response.WriteByte(0x82); Text(response,"time_stamp"); Integer(response,timestamp);
+                                            Text(response,"point_cloud");
+                                            if(Mode==3) response.WriteByte(0x90);
+                                            else { response.WriteByte(0x99); foreach(double point in new double[]{10,0,0,10,2,1,5,-2,1}) Float(response,point); }
+                                        } else response.WriteByte(0xc0);
                                     }
                                 }
                                 byte[] bytes=response.ToArray();
@@ -131,6 +181,31 @@ public static class LidarViewChecks {
             server.Mode=4; WaitFor(feed,"StartRun"); Check(feed.Latest.Points.Length==0,"Disconnect must clear stale dots.");
             server.Mode=0; WaitFor(feed,"Live");
         }
-        return "PASS: MessagePack fixtures, sensor POV, 360-degree view, real RPC polling, pause, missing lidar, empty scans and reconnection.";
+        using(var server=new Server()) {
+            using(var driver=new SlowAutoDriver(server.Port,1.5)) {
+                WaitUntil(()=>server.ApiEnabled && server.LastThrottle>0 && driver.Status=="Running","Slow auto-run must enable API control and follow the centreline.");
+                Check(server.LastThrottle>0,"Slow auto-run must apply throttle below the target speed.");
+                Check(server.LastSteering<0,"Slow auto-run must steer left towards an offset centreline.");
+                Check(driver.Status=="Running","Slow auto-run should report a running state.");
+                server.Mode=2;
+                WaitUntil(()=>driver.Status=="Waiting" && server.LastThrottle==0 && server.LastBrake==1,"Paused simulation must hold the brake.");
+                server.Mode=0;
+                WaitUntil(()=>driver.Status=="Running" && server.LastThrottle>0,"Resuming simulation must resume following.");
+            }
+            WaitUntil(()=>!server.ApiEnabled,"Slow auto-run must release API control when stopped.");
+            Check(server.LastThrottle==0 && server.LastBrake==1,"Stopping must apply the brake before releasing control.");
+        }
+        using(var server=new Server()) {
+            server.TrackMode=1;
+            using(var driver=new SlowAutoDriver(server.Port,1.5)) {
+                WaitUntil(()=>server.ControlsSeen>1 && driver.Status=="Waiting","Missing track must report waiting.");
+                Check(server.LastThrottle==0 && server.LastBrake==1,"Missing track must brake without driving straight.");
+                server.TrackMode=0;
+                WaitUntil(()=>driver.Status=="Running" && server.LastThrottle>0,"Track becoming available must resume following.");
+                server.TrackMode=2;
+                WaitUntil(()=>driver.Status=="Waiting" && server.LastThrottle==0 && server.LastBrake==1,"Malformed car pose must brake.");
+            }
+        }
+        return "PASS: MessagePack fixtures, sensor POV, 360-degree view, real RPC polling, pause, missing lidar, empty scans, reconnection and slow auto-run controls.";
     }
 }

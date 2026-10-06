@@ -124,3 +124,24 @@ To run configuration checks:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\Launcher\tests\Test-RunConfiguration.ps1
 ```
+
+## Slow centreline run
+
+After starting a map, use **Start slow run** in the settings window's **Run**
+section. The speed slider sets the cruise speed from 0.5 to 4 m/s (default
+1.5 m/s); the car slows further for corners and the end of an open track.
+**Stop slow run** brakes and returns control to the simulator. Closing the
+settings window or restarting the simulator also stops the controller.
+
+The launcher forms centreline waypoints between the referee's ground-truth
+blue and yellow cones and steers using the car's ground-truth pose. It works
+independently of lidar placement or cone detection code. Ground-truth data
+stays inside the driving controller; the lidar viewer still shows raw returns.
+The controller brakes when track data or car pose is unavailable, the simulation
+is paused, or the car leaves the centreline corridor. Maps without published
+blue/yellow boundaries cannot use this mode. Complex junctions and skidpad
+missions need a mission-specific route and are not supported by this simple
+centreline controller.
+
+The offline lidar checks above also cover centreline geometry, steering,
+two simulated laps, and automatic driving through a mock simulator API.

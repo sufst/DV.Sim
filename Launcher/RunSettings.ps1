@@ -1,7 +1,7 @@
 param([switch]$Fullscreen, [switch]$SettingsOnly)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase, System.Xaml
-Add-Type -Path (Join-Path $PSScriptRoot 'LidarView.cs') -ReferencedAssemblies @(
+Add-Type -Path @((Join-Path $PSScriptRoot 'LidarView.cs'), (Join-Path $PSScriptRoot 'CentrelineFollower.cs')) -ReferencedAssemblies @(
     'System.dll', 'System.Core.dll', [Windows.Point].Assembly.Location,
     [Windows.Media.Brush].Assembly.Location, [Windows.FrameworkElement].Assembly.Location,
     [System.Xaml.XamlReader].Assembly.Location
@@ -38,6 +38,10 @@ $script:lidarFeed = $null
 $script:lidarTimer = New-Object Windows.Threading.DispatcherTimer
 $script:lidarTimer.Interval = [TimeSpan]::FromMilliseconds(200)
 $script:lidarTimer.Add_Tick({ Update-LidarView })
+$script:slowAutoDriver = $null
+$script:autoRunTimer = New-Object Windows.Threading.DispatcherTimer
+$script:autoRunTimer.Interval = [TimeSpan]::FromMilliseconds(250)
+$script:autoRunTimer.Add_Tick({ Update-SlowAutoRun })
 $script:placementTimer = New-Object Windows.Threading.DispatcherTimer
 $script:placementTimer.Interval = [TimeSpan]::FromMilliseconds(250)
 $script:placementTimer.Add_Tick({
@@ -86,6 +90,12 @@ function Start-Simulator {
     $script:dirty = $false
 }
 
+function Get-ApiPort {
+    $settings = Get-Content -LiteralPath $script:basePath -Raw | ConvertFrom-Json
+    if ($settings.ApiServerPort) { return [int]$settings.ApiServerPort }
+    return 41451
+}
+
 function Stop-LidarView {
     $script:lidarTimer.Stop()
     if ($script:lidarFeed) { $script:lidarFeed.Dispose(); $script:lidarFeed = $null }
@@ -97,10 +107,54 @@ function Start-LidarView {
     $script:ui.LidarOverlay.Visibility = 'Visible'
     $script:ui.LidarOverlayTitle.Text = 'Start the run'
     $script:ui.LidarOverlayBody.Text = 'Choose a map and click Run Simulation in FSDS.'
-    $settings = Get-Content -LiteralPath $script:basePath -Raw | ConvertFrom-Json
-    $port = if ($settings.ApiServerPort) { [int]$settings.ApiServerPort } else { 41451 }
+    $port = Get-ApiPort
     $script:lidarFeed = New-Object DVSim.LidarFeed($port)
     $script:lidarTimer.Start()
+}
+
+function Start-SlowAutoRun {
+    Stop-SlowAutoRun
+    $port = Get-ApiPort
+    $script:slowAutoDriver = New-Object DVSim.SlowAutoDriver -ArgumentList @($port, [double]$script:ui.SlowAutoSpeedSlider.Value)
+    $script:autoRunTimer.Start()
+    Update-SlowAutoRun
+}
+
+function Stop-SlowAutoRun {
+    if ($script:slowAutoDriver) {
+        $script:slowAutoDriver.Dispose()
+        $script:slowAutoDriver = $null
+    }
+    if (-not $script:slowAutoDriver) { $script:autoRunTimer.Stop() }
+    Update-SlowAutoRun
+}
+
+function Update-SlowAutoRun {
+    if (-not $script:ui -or -not $script:ui.SlowAutoButton) { return }
+    $target = [double]$script:ui.SlowAutoSpeedSlider.Value
+    $script:ui.SlowAutoSpeedLabel.Text = '{0:0.0} m/s' -f $target
+    if ($script:slowAutoDriver) {
+        $script:slowAutoDriver.TargetSpeed = $target
+        $status = $script:slowAutoDriver.Status
+        $script:ui.SlowAutoButton.Content = 'Stop slow run'
+        $script:ui.SlowAutoButton.Background = '#EF646D'
+        $script:ui.SlowAutoButton.Foreground = '#101827'
+        $script:ui.SlowAutoStatus.Text = $status.ToUpperInvariant()
+        $script:ui.SlowAutoStatus.Foreground = switch ($status) {
+            'Running' { '#64E6AE' }
+            'Connecting' { '#FFD166' }
+            'Waiting' { '#FFD166' }
+            default { '#9BAAC0' }
+        }
+        $script:ui.SlowAutoDetail.Text = $script:slowAutoDriver.Detail
+    } else {
+        $script:ui.SlowAutoButton.Content = 'Start slow run'
+        $script:ui.SlowAutoButton.Background = '#64E6AE'
+        $script:ui.SlowAutoButton.Foreground = '#101B18'
+        $script:ui.SlowAutoStatus.Text = 'OFF'
+        $script:ui.SlowAutoStatus.Foreground = '#9BAAC0'
+        $script:ui.SlowAutoDetail.Text = 'Start after choosing a map.'
+    }
 }
 
 function Update-LidarView {
@@ -255,6 +309,12 @@ try {
         $script:lidarPlot.Range = $script:ui.ViewRangeSlider.Value
         $script:ui.ViewRangeLabel.Text = '{0:0} m' -f $script:lidarPlot.Range
     })
+    $script:ui.SlowAutoSpeedSlider.Add_ValueChanged({ Update-SlowAutoRun })
+    $script:ui.SlowAutoButton.Add_Click({
+        try {
+            if ($script:slowAutoDriver) { Stop-SlowAutoRun } else { Start-SlowAutoRun }
+        } catch { Show-UiError $_ }
+    })
     $script:ui.LidarButton.Add_Click({ Show-Page 'Catalog' })
     $script:ui.PandarButton.Add_Click({ Show-Page 'Sensor' })
     $script:ui.PlacementButton.Add_Click({ Show-Page 'Placement' })
@@ -285,6 +345,7 @@ try {
     $script:ui.RestartButton.Add_Click({
         try {
             $script:ui.RestartButton.IsEnabled = $false
+            Stop-SlowAutoRun
             foreach ($process in (Get-SimulatorProcesses)) {
                 [void]$process.CloseMainWindow()
                 if (-not $process.WaitForExit(4000)) { $process.Kill(); $process.WaitForExit() }
@@ -307,6 +368,8 @@ try {
     exit 1
 } finally {
     Stop-LidarView
+    Stop-SlowAutoRun
+    $script:autoRunTimer.Stop()
     $script:placementTimer.Stop()
     if ($script:mutex) { if ($created) { $script:mutex.ReleaseMutex() }; $script:mutex.Dispose() }
 }

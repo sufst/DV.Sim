@@ -11,7 +11,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 
 namespace DVSim {
-    // The small MessagePack subset used by FSDS's read-only RPC responses.
+    // The small MessagePack subset used by FSDS's RPC responses.
     // Protocol: https://github.com/msgpack-rpc/msgpack-rpc/blob/master/spec.md
     public sealed class MessagePackReader {
         readonly Stream stream;
@@ -127,13 +127,43 @@ namespace DVSim {
             if (bytes.Length > 31) throw new ArgumentException("RPC method or argument is too long.");
             stream.WriteByte((byte)(0xa0 | bytes.Length)); stream.Write(bytes, 0, bytes.Length);
         }
-        public object Call(string method, params string[] arguments) {
+        static void WriteUInt(Stream stream, ulong value) {
+            if (value <= 0x7f) stream.WriteByte((byte)value);
+            else if (value <= 0xff) { stream.WriteByte(0xcc); stream.WriteByte((byte)value); }
+            else if (value <= 0xffff) { stream.WriteByte(0xcd); stream.WriteByte((byte)(value >> 8)); stream.WriteByte((byte)value); }
+            else {
+                stream.WriteByte(0xce);
+                for (int shift = 24; shift >= 0; shift -= 8) stream.WriteByte((byte)(value >> shift));
+            }
+        }
+        static void WriteDouble(Stream stream, double value) {
+            stream.WriteByte(0xcb);
+            byte[] bytes = BitConverter.GetBytes(value);
+            if (BitConverter.IsLittleEndian) Array.Reverse(bytes);
+            stream.Write(bytes, 0, bytes.Length);
+        }
+        static void WriteMap(Stream stream, Dictionary<string, object> map) {
+            if (map.Count > 15) throw new ArgumentException("RPC map argument is too large.");
+            stream.WriteByte((byte)(0x80 | map.Count));
+            foreach (var item in map) { WriteText(stream, item.Key); WriteValue(stream, item.Value); }
+        }
+        static void WriteValue(Stream stream, object value) {
+            if (value == null) stream.WriteByte(0xc0);
+            else if (value is string) WriteText(stream, (string)value);
+            else if (value is bool) stream.WriteByte((bool)value ? (byte)0xc3 : (byte)0xc2);
+            else if (value is double || value is float) WriteDouble(stream, Convert.ToDouble(value, CultureInfo.InvariantCulture));
+            else if (value is int || value is uint || value is long || value is ulong)
+                WriteUInt(stream, Convert.ToUInt64(value, CultureInfo.InvariantCulture));
+            else if (value is Dictionary<string, object>) WriteMap(stream, (Dictionary<string, object>)value);
+            else throw new ArgumentException("Unsupported RPC argument type.");
+        }
+        public object Call(string method, params object[] arguments) {
             uint id = ++sequence;
             using (var request = new MemoryStream()) {
                 request.WriteByte(0x94); request.WriteByte(0); request.WriteByte(0xce);
                 for (int shift = 24; shift >= 0; shift -= 8) request.WriteByte((byte)(id >> shift));
                 WriteText(request, method); request.WriteByte((byte)(0x90 | arguments.Length));
-                foreach (string argument in arguments) WriteText(request, argument);
+                foreach (object argument in arguments) WriteValue(request, argument);
                 byte[] bytes = request.ToArray(); output.Write(bytes, 0, bytes.Length);
             }
             object[] response = new MessagePackReader(input).ReadMessage() as object[];
@@ -143,6 +173,113 @@ namespace DVSim {
             return response[3];
         }
         public void Dispose() { client.Close(); input.Dispose(); }
+    }
+
+    public sealed class SlowAutoDriver : IDisposable {
+        readonly object sync = new object();
+        readonly ManualResetEvent stopping = new ManualResetEvent(false);
+        readonly Thread worker;
+        readonly int port;
+        LidarRpc rpc;
+        string status = "Stopped";
+        string detail = "Stopped";
+        double targetSpeed;
+        public string Status { get { lock (sync) return status; } }
+        public string Detail { get { lock (sync) return detail; } }
+        public double TargetSpeed {
+            get { lock (sync) return targetSpeed; }
+            set { lock (sync) targetSpeed = Math.Max(0.5, Math.Min(4.0, value)); }
+        }
+        public SlowAutoDriver(int port, double targetSpeed) {
+            this.port = port; TargetSpeed = targetSpeed;
+            worker = new Thread(Drive); worker.IsBackground = true; worker.Start();
+        }
+        void Publish(string nextStatus, string nextDetail) { lock (sync) { status = nextStatus; detail = nextDetail; } }
+        void Disconnect() { lock (sync) { if (rpc != null) { rpc.Dispose(); rpc = null; } } }
+        static Dictionary<string, object> Controls(double throttle, double brake, double steering = 0) {
+            return new Dictionary<string, object> {
+                { "throttle", throttle }, { "steering", steering }, { "brake", brake },
+                { "handbrake", false }, { "is_manual_gear", false },
+                { "manual_gear", 0 }, { "gear_immediate", true }
+            };
+        }
+        static double SpeedFrom(object response) {
+            var state = response as Dictionary<string, object>;
+            if (state == null || !state.ContainsKey("speed") || state["speed"] == null)
+                throw new InvalidDataException("Car speed is unavailable.");
+            double speed = Math.Abs(Convert.ToDouble(state["speed"], CultureInfo.InvariantCulture));
+            if (Double.IsNaN(speed) || Double.IsInfinity(speed)) throw new InvalidDataException("Car speed is invalid.");
+            return speed;
+        }
+        void StopCar() {
+            if (rpc == null) return;
+            try { rpc.Call("setCarControls", Controls(0, 1.0), "FSCar"); } catch {}
+            try { rpc.Call("enableApiControl", false, "FSCar"); } catch {}
+        }
+        void Drive() {
+            CentrelineFollower follower = null;
+            ulong previousTimestamp = 0;
+            DateTime changedAt = DateTime.UtcNow, trackReadAt = DateTime.MinValue;
+            try {
+                while (!stopping.WaitOne(0)) {
+                    try {
+                        if (rpc == null) {
+                            Publish("Connecting", "Waiting for a running simulation");
+                            var connected = new LidarRpc(port);
+                            lock (sync) {
+                                if (stopping.WaitOne(0)) { connected.Dispose(); break; }
+                                rpc = connected;
+                            }
+                            rpc.Call("enableApiControl", true, "FSCar");
+                            rpc.Call("setCarControls", Controls(0, 1), "FSCar");
+                            follower = null; previousTimestamp = 0; trackReadAt = DateTime.MinValue;
+                            changedAt = DateTime.UtcNow;
+                        }
+                        double target = TargetSpeed;
+                        var state = rpc.Call("getCarState", "FSCar") as Dictionary<string, object>;
+                        double speed = SpeedFrom(state);
+                        if (!state.ContainsKey("timestamp") || state["timestamp"] == null)
+                            throw new InvalidDataException("Car timestamp is unavailable.");
+                        ulong timestamp = Convert.ToUInt64(state["timestamp"], CultureInfo.InvariantCulture);
+                        if (timestamp < previousTimestamp) follower = null;
+                        if (timestamp != previousTimestamp) { previousTimestamp = timestamp; changedAt = DateTime.UtcNow; }
+                        if (follower == null || (follower.WaypointCount < 2 && (DateTime.UtcNow-trackReadAt).TotalSeconds > 1)) {
+                            follower = new CentrelineFollower(rpc.Call("getRefereeState")); trackReadAt = DateTime.UtcNow;
+                        }
+                        double steering = 0, followingSpeed = 0;
+                        string reason = "Simulation paused";
+                        bool following = timestamp != 0 && (DateTime.UtcNow-changedAt).TotalSeconds < 1 &&
+                            follower.TryGetCommand(rpc.Call("simGetGroundTruthKinematics", "FSCar"), speed, target,
+                                out steering, out followingSpeed, out reason);
+                        if (following) {
+                            double throttle = speed < followingSpeed - 0.1 ? Math.Min(0.16, 0.04 + (followingSpeed - speed) * 0.08) : 0;
+                            double brake = speed > followingSpeed + 0.15 ? Math.Min(0.6, (speed - followingSpeed) * 0.3) : 0;
+                            rpc.Call("setCarControls", Controls(throttle, brake, steering), "FSCar");
+                            Publish("Running", String.Format(CultureInfo.InvariantCulture, "Centreline  /  {0:0.0} m/s", speed));
+                        } else {
+                            rpc.Call("setCarControls", Controls(0, 1), "FSCar");
+                            Publish(reason == "End of track" ? "Finished" : "Waiting", reason);
+                        }
+                    } catch (Exception ex) {
+                        Publish("Waiting", ex is RpcException || ex is InvalidDataException ? ex.Message : "Start a run in FSDS");
+                        StopCar();
+                        Disconnect();
+                        if (stopping.WaitOne(600)) break;
+                        continue;
+                    }
+                    if (stopping.WaitOne(50)) break;
+                }
+            } finally {
+                StopCar();
+                Disconnect();
+                Publish("Stopped", "Stopped");
+            }
+        }
+        public void Dispose() {
+            stopping.Set();
+            if (!worker.Join(3500)) Disconnect();
+            if (worker.Join(2000)) stopping.Dispose();
+        }
     }
 
     public sealed class LidarSnapshot {

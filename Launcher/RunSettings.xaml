@@ -325,10 +325,31 @@
       </Grid>
       </ScrollViewer>
       <Border Grid.Row="2" BorderBrush="#25324A" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,22,0,0">
-        <StackPanel>
-          <TextBlock Name="SaveStatus" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,12"/>
-          <Button Name="RestartButton" Content="Restart simulator" HorizontalAlignment="Left" Padding="18,10" FontSize="12"/>
-        </StackPanel>
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
+          <StackPanel>
+            <TextBlock Text="Run" Style="{StaticResource Eyebrow}" Margin="0,0,0,8"/>
+            <TextBlock Name="SaveStatus" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,12"/>
+            <Button Name="RestartButton" Content="Restart simulator" HorizontalAlignment="Left" Padding="18,10" FontSize="12"/>
+          </StackPanel>
+          <StackPanel Grid.Column="2">
+            <DockPanel Margin="0,0,0,8">
+              <TextBlock Name="SlowAutoStatus" DockPanel.Dock="Right" Text="OFF" Style="{StaticResource Eyebrow}" Foreground="#9BAAC0" VerticalAlignment="Center"/>
+              <TextBlock Text="Slow auto-run" Style="{StaticResource Eyebrow}"/>
+            </DockPanel>
+            <Grid Margin="0,0,0,12">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <TextBlock Text="Speed" Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center"/>
+              <Slider Name="SlowAutoSpeedSlider" Grid.Column="1" Minimum="0.5" Maximum="4" Value="1.5" TickFrequency="0.5" SmallChange="0.1" LargeChange="0.5" Margin="14,0" VerticalAlignment="Center" AutomationProperties.Name="Slow auto-run speed in metres per second"/>
+              <TextBlock Name="SlowAutoSpeedLabel" Grid.Column="2" Text="1.5 m/s" Foreground="#C8B9FF" FontSize="11" MinWidth="56" VerticalAlignment="Center"/>
+            </Grid>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+              <Button Name="SlowAutoButton" Grid.Column="1" Content="Start slow run" HorizontalAlignment="Right" Padding="18,10" FontSize="12" Background="#64E6AE" Foreground="#101B18" BorderThickness="0"/>
+              <TextBlock Name="SlowAutoDetail" Text="Start after choosing a map." Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,14,0" TextWrapping="Wrap"/>
+            </Grid>
+          </StackPanel>
+        </Grid>
       </Border>
     </Grid>
   </Grid>
