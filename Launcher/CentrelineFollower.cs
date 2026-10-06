@@ -14,6 +14,17 @@ namespace DVSim {
         public int WaypointCount { get { return path.Count; } }
         public bool IsClosed { get { return closed; } }
 
+        public sealed class Waypoint {
+            public readonly double X, Y, Width;
+            internal Waypoint(double x, double y, double width) { X = x; Y = y; Width = width; }
+        }
+        public Waypoint[] GetWaypoints() {
+            var result = new Waypoint[path.Count];
+            for (int i = 0; i < path.Count; i++)
+                result[i] = new Waypoint(path[i].X, path[i].Y, path[i].Width);
+            return result;
+        }
+
         static double Number(Dictionary<string, object> map, string key) {
             object value;
             if (map == null || !map.TryGetValue(key, out value) || value == null)

@@ -1,0 +1,76 @@
+CONTROLLING THE DV.SIM CAR
+
+This Control_Tests folder is at the repository's top level, beside README.md.
+
+RUNNING YOUR CONTROLLER
+1. Double-click Run-Centreline.cmd.
+2. Choose a map and click Run Simulation. If a map is already running, its
+   centreline is read immediately.
+3. The launcher fetches known cone positions, builds the same centreline used by
+   Automatic Movement, exports it, and automatically starts control.py.
+4. Edit run_control(centreline, car) in control.py to add your driving logic.
+   Initially this function only confirms the path and simulator connection.
+
+The launcher finds Python 3.9+ in the repository's .venv, on PATH or in the
+Windows Python registry. The only Python dependency is msgpack:
+    python -m pip install msgpack
+To select a particular Python installation from PowerShell:
+    ./Control_Tests/Run-Centreline.cmd -PythonExecutable "C:\path\python.exe"
+To use the existing simulator without launching Run settings:
+    ./Control_Tests/Run-Centreline.cmd -NoLaunch
+
+CENTRELINE INPUT
+The launcher supplies control.py with --centreline <JSON file> and --port <port>.
+run_control receives the decoded JSON as a dictionary:
+    centreline["closed"]       True for a closed loop.
+    centreline["waypoints"]    Ordered list of path points.
+Each point contains index, x_m, y_m and track_width_m.
+Coordinates are metres relative to spawn, in fixed map axes matching the
+simulator's car pose. They do not rotate with the car. For a closed loop, the
+last point connects to the first. These are known simulator positions, not
+lidar detections. CSV and JSON exports are in FSOnline/Saved/Control_Tests/.
+Select a new map and rerun the launcher to obtain its new path.
+
+CAR COMMANDS
+    car.enable_control()                 Acquire API control.
+    state = car.get_state()              state["speed"] is in metres/second.
+    pose = car.get_pose()                Ground-truth car position/orientation.
+    pose["position"]["x_val"]            X in the centreline's frame, metres.
+    pose["position"]["y_val"]            Y in the centreline's frame, metres.
+    pose["orientation"]                  Quaternion x_val/y_val/z_val/w_val.
+    car.set_controls(throttle=0.1, steering=0.0, brake=0.0)
+    car.stop()                           Zero throttle, full brake.
+
+Throttle: 0 to 1. It controls acceleration, not a target speed.
+Steering: -1 to +1. Negative turns left; positive turns right.
+Brake: 0 to 1. Zero releases the brake; 1 applies full brake.
+Forward gear is selected explicitly because low throttle can leave FSDS in
+neutral. Commands remain active until replaced. Read speed and pose repeatedly
+and update commands (for example every 0.05 seconds) in your controller loop.
+When the function returns, raises an error, or receives Ctrl+C, the context
+manager attempts to brake and release API control if your code acquired it.
+Close with Ctrl+C so that this cleanup can run.
+Stop Automatic Movement and other driving scripts before running your controller.
+
+SHORT STRAIGHT-DRIVING EXAMPLE
+Replace run_control with this to drive straight briefly and stop. This is an
+example of commanding the car; it does not follow the centreline:
+
+    def run_control(centreline, car):
+        import time
+        car.enable_control()
+        end = time.monotonic() + 2.0
+        while time.monotonic() < end:
+            speed = abs(car.get_state()["speed"])
+            car.set_controls(
+                throttle=0.08 if speed < 1.0 else 0.0,
+                steering=0.0,
+                brake=0.2 if speed > 1.2 else 0.0,
+            )
+            time.sleep(0.05)
+        car.stop()
+
+To follow the centreline, choose an upcoming waypoint, calculate its direction
+relative to the car heading, and use that error to set steering. Use measured
+speed to adjust throttle/brake. Slow down for corners, stop at an open path's
+end, and wrap the waypoint index only when centreline["closed"] is True.

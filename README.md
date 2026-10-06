@@ -146,3 +146,8 @@ centreline controller.
 
 The offline lidar checks above also cover centreline geometry, steering,
 two simulated laps, and automatic driving through a mock simulator API.
+
+To obtain the centreline and feed it to **Control_Tests/control.py**, double-click
+**Control_Tests/Run-Centreline.cmd**, then choose a map and start the simulation.
+See [Control_Tests](Control_Tests/README.md) and
+[HOW_TO_CONTROL.txt](Control_Tests/HOW_TO_CONTROL.txt) for car commands and input coordinates.
