@@ -100,6 +100,9 @@
           <Button Name="RunSettingsNav" Content="Run settings" Background="#23304B" Foreground="#C8B9FF" BorderThickness="0" Padding="13,12" Margin="0,40,0,0" HorizontalContentAlignment="Left"/>
           <TextBlock Text="In-Run visuals" Style="{StaticResource Eyebrow}" Margin="10,28,0,10"/>
           <Button Name="LiveLidarButton" Content="Lidar map" Background="#101827" BorderThickness="0" Padding="13,12" HorizontalContentAlignment="Left"/>
+          <Button Name="AutomaticMovementButton" AutomationProperties.Name="Automatic Movement" Background="#101827" BorderThickness="0" Padding="13,12" HorizontalContentAlignment="Left" Margin="0,6,0,0">
+            <TextBlock Text="Automatic Movement" TextWrapping="Wrap"/>
+          </Button>
         </StackPanel>
         <StackPanel Grid.Row="2">
           <Border Height="1" Background="#2A364A" Margin="0,0,0,18"/>
@@ -277,6 +280,26 @@
             <TextBlock Grid.Column="6" Text="200 m" Style="{StaticResource Muted}" FontSize="10" HorizontalAlignment="Right"/>
           </Grid>
         </StackPanel>
+        <StackPanel Name="AutomaticMovementPage" Visibility="Collapsed">
+          <TextBlock Text="Automatic Movement" FontSize="30" FontWeight="SemiBold" Margin="0,0,0,10"/>
+          <TextBlock Text="Choose a map and start the simulation, then start a slow run." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,26"/>
+          <Border Background="#172438" BorderBrush="#33425A" BorderThickness="1" CornerRadius="16" Padding="24">
+            <StackPanel>
+              <DockPanel Margin="0,0,0,24">
+                <TextBlock Name="SlowAutoStatus" DockPanel.Dock="Right" Text="OFF" Style="{StaticResource Eyebrow}" Foreground="#9BAAC0" VerticalAlignment="Center"/>
+                <TextBlock Text="Slow auto-run" FontSize="20" FontWeight="SemiBold"/>
+              </DockPanel>
+              <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <TextBlock Text="Speed" Style="{StaticResource Muted}" VerticalAlignment="Center"/>
+                <Slider Name="SlowAutoSpeedSlider" Grid.Column="1" Minimum="0.5" Maximum="4" Value="1.5" TickFrequency="0.5" SmallChange="0.1" LargeChange="0.5" Margin="20,0" VerticalAlignment="Center" AutomationProperties.Name="Slow auto-run speed in metres per second"/>
+                <TextBlock Name="SlowAutoSpeedLabel" Grid.Column="2" Text="1.5 m/s" Foreground="#C8B9FF" MinWidth="64" VerticalAlignment="Center"/>
+              </Grid>
+              <TextBlock Name="SlowAutoDetail" Text="Start after choosing a map." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,18"/>
+              <Button Name="SlowAutoButton" Content="Start slow run" HorizontalAlignment="Left" Background="#64E6AE" Foreground="#101B18" BorderThickness="0"/>
+            </StackPanel>
+          </Border>
+        </StackPanel>
         <StackPanel Name="PlacementPage" Visibility="Collapsed">
           <TextBlock Text="Find the right position." FontSize="29" FontWeight="SemiBold" Margin="0,0,0,8"/>
           <TextBlock Text="Position is relative to the vehicle origin. Rotations are in degrees." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,22"/>
@@ -329,31 +352,11 @@
       </Grid>
       </ScrollViewer>
       <Border Grid.Row="2" BorderBrush="#25324A" BorderThickness="0,1,0,0" Padding="0,18,0,0" Margin="0,22,0,0">
-        <Grid>
-          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="28"/><ColumnDefinition Width="1.15*"/></Grid.ColumnDefinitions>
           <StackPanel>
             <TextBlock Text="Run" Style="{StaticResource Eyebrow}" Margin="0,0,0,8"/>
             <TextBlock Name="SaveStatus" Style="{StaticResource Muted}" FontSize="11" Margin="0,0,0,12"/>
             <Button Name="RestartButton" Content="Restart simulator" HorizontalAlignment="Left" Padding="18,10" FontSize="12"/>
           </StackPanel>
-          <StackPanel Grid.Column="2">
-            <DockPanel Margin="0,0,0,8">
-              <TextBlock Name="SlowAutoStatus" DockPanel.Dock="Right" Text="OFF" Style="{StaticResource Eyebrow}" Foreground="#9BAAC0" VerticalAlignment="Center"/>
-              <TextBlock Text="Slow auto-run" Style="{StaticResource Eyebrow}"/>
-            </DockPanel>
-            <Grid Margin="0,0,0,12">
-              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBlock Text="Speed" Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center"/>
-              <Slider Name="SlowAutoSpeedSlider" Grid.Column="1" Minimum="0.5" Maximum="4" Value="1.5" TickFrequency="0.5" SmallChange="0.1" LargeChange="0.5" Margin="14,0" VerticalAlignment="Center" AutomationProperties.Name="Slow auto-run speed in metres per second"/>
-              <TextBlock Name="SlowAutoSpeedLabel" Grid.Column="2" Text="1.5 m/s" Foreground="#C8B9FF" FontSize="11" MinWidth="56" VerticalAlignment="Center"/>
-            </Grid>
-            <Grid>
-              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <Button Name="SlowAutoButton" Grid.Column="1" Content="Start slow run" HorizontalAlignment="Right" Padding="18,10" FontSize="12" Background="#64E6AE" Foreground="#101B18" BorderThickness="0"/>
-              <TextBlock Name="SlowAutoDetail" Text="Start after choosing a map." Style="{StaticResource Muted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,14,0" TextWrapping="Wrap"/>
-            </Grid>
-          </StackPanel>
-        </Grid>
       </Border>
     </Grid>
   </Grid>

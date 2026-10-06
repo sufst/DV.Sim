@@ -199,8 +199,9 @@ namespace DVSim {
         static Dictionary<string, object> Controls(double throttle, double brake, double steering = 0) {
             return new Dictionary<string, object> {
                 { "throttle", throttle }, { "steering", steering }, { "brake", brake },
-                { "handbrake", false }, { "is_manual_gear", false },
-                { "manual_gear", 0 }, { "gear_immediate", true }
+                // Low throttle does not reliably shift this FSDS build out of neutral.
+                { "handbrake", false }, { "is_manual_gear", true },
+                { "manual_gear", 1 }, { "gear_immediate", true }
             };
         }
         static double SpeedFrom(object response) {

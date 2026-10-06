@@ -133,8 +133,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Launcher\tests\Test-RunCon
 
 ## Slow centreline run
 
-After starting a map, use **Start slow run** in the settings window's **Run**
-section. The speed slider sets the cruise speed from 0.5 to 4 m/s (default
+After starting a map, select **Automatic Movement** below **Lidar map** in the
+settings window's left menu, then click **Start slow run**. The speed slider
+on that page sets the cruise speed from 0.5 to 4 m/s (default
 1.5 m/s); the car slows further for corners and the end of an open track.
 **Stop slow run** brakes and returns control to the simulator. Closing the
 settings window or restarting the simulator also stops the controller.
@@ -151,3 +152,8 @@ centreline controller.
 
 The offline lidar checks above also cover centreline geometry, steering,
 two simulated laps, and automatic driving through a mock simulator API.
+
+To obtain the centreline and feed it to **Control_Tests/control.py**, double-click
+**Control_Tests/Run-Centreline.cmd**, then choose a map and start the simulation.
+See [Control_Tests](Control_Tests/README.md) and
+[HOW_TO_CONTROL.txt](Control_Tests/HOW_TO_CONTROL.txt) for car commands and input coordinates.
