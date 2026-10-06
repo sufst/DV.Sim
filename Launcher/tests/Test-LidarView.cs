@@ -98,6 +98,10 @@ public static class LidarViewChecks {
                                 Check(args.Length==2 && args[0] is System.Collections.Generic.Dictionary<string,object> && (string)args[1]=="FSCar","Car-control arguments are incorrect.");
                                 var controls=(System.Collections.Generic.Dictionary<string,object>)args[0];
                                 Check(controls.ContainsKey("throttle") && controls.ContainsKey("steering") && controls.ContainsKey("brake"),"Car controls must include throttle, steering and brake.");
+                                Check(controls.ContainsKey("is_manual_gear") && (bool)controls["is_manual_gear"] &&
+                                    controls.ContainsKey("manual_gear") && Convert.ToInt32(controls["manual_gear"])==1 &&
+                                    controls.ContainsKey("gear_immediate") && (bool)controls["gear_immediate"],
+                                    "Slow auto-run must select forward gear; low throttle can leave FSDS in neutral.");
                                 LastThrottle=Convert.ToDouble(controls["throttle"]);
                                 LastBrake=Convert.ToDouble(controls["brake"]);
                                 LastSteering=Convert.ToDouble(controls["steering"]);

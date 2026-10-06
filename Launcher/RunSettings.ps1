@@ -195,7 +195,7 @@ function Update-LidarView {
 function Show-Page([string]$Page) {
     if ($script:page -eq 'Visuals' -and $Page -ne 'Visuals') { Stop-LidarView }
     $script:page = $Page
-    foreach ($name in 'Home', 'Catalog', 'Sensor', 'Placement', 'Visuals') {
+    foreach ($name in 'Home', 'Catalog', 'Sensor', 'Placement', 'Visuals', 'AutomaticMovement') {
         $script:ui[$name + 'Page'].Visibility = if ($Page -eq $name) { 'Visible' } else { 'Collapsed' }
     }
     $script:ui.BackButton.Visibility = if ($Page -eq 'Home') { 'Collapsed' } else { 'Visible' }
@@ -203,9 +203,11 @@ function Show-Page([string]$Page) {
         'Home' { 'RUN SETTINGS' }; 'Catalog' { 'RUN SETTINGS / LIDAR' }
         'Sensor' { 'LIDAR / PANDAR 40P' }; 'Placement' { 'PANDAR 40P / PLACEMENT' }
         'Visuals' { 'IN-RUN VISUALS / LIDAR MAP' }
+        'AutomaticMovement' { 'AUTOMATIC MOVEMENT' }
     }
-    $script:ui.RunSettingsNav.Background = if ($Page -eq 'Visuals') { '#101827' } else { '#23304B' }
+    $script:ui.RunSettingsNav.Background = if ($Page -in 'Visuals', 'AutomaticMovement') { '#101827' } else { '#23304B' }
     $script:ui.LiveLidarButton.Background = if ($Page -eq 'Visuals') { '#23304B' } else { '#101827' }
+    $script:ui.AutomaticMovementButton.Background = if ($Page -eq 'AutomaticMovement') { '#23304B' } else { '#101827' }
     if ($Page -eq 'Visuals') { Start-LidarView }
     if ($Page -eq 'Placement') {
         foreach ($axis in 'X', 'Y', 'Z', 'Roll', 'Pitch', 'Yaw') {
@@ -274,6 +276,7 @@ try {
     $script:ui.ResetViewButton.Add_Click({ $script:lidarPlot.ResetView() })
     $script:ui.RunSettingsNav.Add_Click({ Show-Page 'Home' })
     $script:ui.LiveLidarButton.Add_Click({ Show-Page 'Visuals' })
+    $script:ui.AutomaticMovementButton.Add_Click({ Show-Page 'AutomaticMovement' })
     $script:ui.PovButton.Add_Click({
         $script:lidarPlot.ResetView()
         $script:ui.RaisedViewControls.Visibility = 'Collapsed'
