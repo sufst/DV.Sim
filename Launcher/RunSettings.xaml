@@ -196,12 +196,16 @@
         </StackPanel>
         <StackPanel Name="VisualsPage" Visibility="Collapsed">
           <DockPanel Margin="0,0,0,8">
+            <Button Name="DownloadMapButton" DockPanel.Dock="Right" Width="36" Height="36" Padding="0" Margin="10,0,0,0" IsEnabled="False" VerticalAlignment="Center" ToolTip="Download current scan positions (CSV)" AutomationProperties.Name="Download lidar map">
+              <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="16"/>
+            </Button>
             <Border DockPanel.Dock="Right" Background="#1B2A3C" CornerRadius="8" Padding="12,6" VerticalAlignment="Center">
               <TextBlock Name="LiveState" Text="OFFLINE" FontSize="10" FontWeight="SemiBold" Foreground="#9BAAC0"/>
             </Border>
             <TextBlock Text="Lidar map" FontSize="30" FontWeight="SemiBold"/>
           </DockPanel>
           <TextBlock Text="Explore live lidar returns from three viewpoints." Style="{StaticResource Muted}" FontSize="12" Margin="0,0,0,18"/>
+          <TextBlock Name="DownloadMapStatus" Visibility="Collapsed" Style="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,14"/>
           <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
             <Button Name="AngledButton" Content="Raised POV" FontSize="12" Padding="16,9" Background="#34415D" Foreground="#C8B9FF"/>
             <Button Name="TopDownButton" Content="Top-down / 360&#176;" FontSize="12" Padding="16,9" Margin="10,0,0,0"/>

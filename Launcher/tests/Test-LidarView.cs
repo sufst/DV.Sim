@@ -138,7 +138,39 @@ public static class LidarViewChecks {
         }
         public void Dispose() { stop=true; listener.Stop(); if(active!=null) active.Close(); worker.Join(2000); }
     }
+    public static string CheckPositionsDownload() {
+        string directory = Path.Combine(Path.GetTempPath(), "dvsim-export-check-" + Guid.NewGuid().ToString("N"));
+        var previousCulture = Thread.CurrentThread.CurrentCulture;
+        try {
+            Thread.CurrentThread.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+            var snapshot = new LidarSnapshot("Live", new double[] { 1.25,-2.5,0.75, 250,0,-1, Double.NaN,2,3 }, 123);
+            string first = snapshot.SavePositionsCsv(directory);
+            string second = snapshot.SavePositionsCsv(directory);
+            Check(first!=second && File.Exists(first) && File.Exists(second), "Repeated downloads must create separate files.");
+            string[] rows = File.ReadAllLines(first);
+            Check(rows.Length==3 && rows[0]=="x,y,z" && rows[1]=="1.25,-2.5,0.75" && rows[2]=="250,0,-1",
+                "Export must preserve XYZ positions, use decimal points in every locale and omit non-finite returns.");
+            foreach (var invalid in new LidarSnapshot[] {
+                new LidarSnapshot("Paused", new double[] { 1,2,3 },123),
+                new LidarSnapshot("Live",new double[0],123),
+                new LidarSnapshot("Live",new double[] { 1,2,3 },0),
+                new LidarSnapshot("Live",new double[] { 1,2 },123),
+                new LidarSnapshot("Live",new double[] { 1,Double.PositiveInfinity,3 },123)
+            }) {
+                bool rejected = false;
+                try { invalid.SavePositionsCsv(directory); }
+                catch (InvalidOperationException) { rejected = true; }
+                Check(rejected,"Paused, empty or invalid scans must not export.");
+            }
+            Check(Directory.GetFiles(directory).Length==2,"Rejected scans must not leave files behind.");
+            return "PASS: lidar CSV positions, locale independence, unique downloads and unavailable scan rejection.";
+        } finally {
+            Thread.CurrentThread.CurrentCulture = previousCulture;
+            if (Directory.Exists(directory)) Directory.Delete(directory,true);
+        }
+    }
     public static string Run() {
+        CheckPositionsDownload();
         // Independent wire fixtures: float32, float64, signed ints and uint64 above 2^53.
         var numberArray=(object[])new MessagePackReader(new MemoryStream(Hex("94 ca 3f 80 00 00 cb 3f f8 00 00 00 00 00 00 fe cf 00 20 00 00 00 00 00 01"))).ReadMessage();
         Check(Convert.ToDouble(numberArray[0])==1 && Convert.ToDouble(numberArray[1])==1.5 && Convert.ToInt64(numberArray[2])==-2,"Numeric wire decoding failed.");

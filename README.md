@@ -80,6 +80,12 @@ button and drag to move around the view. **Reset view** restores the initial zoo
 and centre; switching viewpoints also resets navigation. Height, tilt and view
 range remain unchanged. Zooming magnifies the scan; it does not change the sensor.
 
+The download icon beside **Lidar map** saves the current scan to your Windows
+**Downloads** folder as a uniquely named `lidar-map-*.csv`. It contains only
+`x,y,z` columns: raw return positions in metres relative to the lidar, with
+X forward, Y left and Z up. The full scan is exported regardless of view range,
+zoom or viewpoint; invalid returns are skipped. A live, nonempty scan is required.
+
 The viewer polls at up to 5 Hz while its page is open. It checks every returned
 point and draws every valid return inside the current view and range, with no
 point-skipping limit. Zooming separates overlapping dots and reveals the full

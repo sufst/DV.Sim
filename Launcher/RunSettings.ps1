@@ -35,6 +35,7 @@ $script:dirty = $false
 $script:page = 'Home'
 $script:mutex = $null
 $script:lidarFeed = $null
+$script:displayedScan = $null
 $script:lidarTimer = New-Object Windows.Threading.DispatcherTimer
 $script:lidarTimer.Interval = [TimeSpan]::FromMilliseconds(200)
 $script:lidarTimer.Add_Tick({ Update-LidarView })
@@ -98,11 +99,14 @@ function Get-ApiPort {
 
 function Stop-LidarView {
     $script:lidarTimer.Stop()
+    $script:displayedScan = $null
+    if ($script:ui.DownloadMapButton) { $script:ui.DownloadMapButton.IsEnabled = $false }
     if ($script:lidarFeed) { $script:lidarFeed.Dispose(); $script:lidarFeed = $null }
 }
 
 function Start-LidarView {
     Stop-LidarView
+    $script:ui.DownloadMapStatus.Visibility = 'Collapsed'
     $script:lidarPlot.SetPoints($null)
     $script:ui.LidarOverlay.Visibility = 'Visible'
     $script:ui.LidarOverlayTitle.Text = 'Start the run'
@@ -161,6 +165,8 @@ function Update-LidarView {
     if (-not $script:lidarFeed) { return }
     $scan = $script:lidarFeed.Latest
     $live = $scan.Status -eq 'Live'
+    $script:displayedScan = if ($live) { $scan } else { $null }
+    $script:ui.DownloadMapButton.IsEnabled = $live -and $scan.Points.Length -gt 0
     $script:ui.LidarOverlay.Visibility = if ($live) { 'Collapsed' } else { 'Visible' }
     $script:ui.LiveState.Text = if ($live) { 'LIVE' } else { 'WAITING' }
     $script:ui.LiveState.Foreground = if ($live) { '#64E6AE' } else { '#9BAAC0' }
@@ -272,6 +278,22 @@ try {
     [void]$script:ui.LidarPlotHost.Children.Add($script:lidarPlot)
     $script:lidarPlot.Add_ViewChanged({ $script:ui.ZoomLabel.Text = '{0:0.0}x' -f $script:lidarPlot.Zoom })
     $script:ui.ResetViewButton.Add_Click({ $script:lidarPlot.ResetView() })
+    $script:ui.DownloadMapButton.Add_Click({
+        try {
+            if (-not $script:displayedScan -or -not $script:lidarFeed -or $script:lidarFeed.Latest.Status -ne 'Live') {
+                throw 'No current lidar scan to download.'
+            }
+            $path = $script:displayedScan.DownloadPositionsCsv()
+            $script:ui.DownloadMapStatus.Text = 'Saved to Downloads: ' + [IO.Path]::GetFileName($path)
+            $script:ui.DownloadMapStatus.ToolTip = $path
+            $script:ui.DownloadMapStatus.Foreground = '#64E6AE'
+        } catch {
+            $script:ui.DownloadMapStatus.Text = 'Download failed: ' + $_.Exception.Message
+            $script:ui.DownloadMapStatus.ToolTip = $null
+            $script:ui.DownloadMapStatus.Foreground = '#FF8990'
+        }
+        $script:ui.DownloadMapStatus.Visibility = 'Visible'
+    })
     $script:ui.RunSettingsNav.Add_Click({ Show-Page 'Home' })
     $script:ui.LiveLidarButton.Add_Click({ Show-Page 'Visuals' })
     $script:ui.PovButton.Add_Click({

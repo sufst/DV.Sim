@@ -283,12 +283,48 @@ namespace DVSim {
     }
 
     public sealed class LidarSnapshot {
+        [DllImport("shell32.dll")]
+        static extern int SHGetKnownFolderPath(ref Guid folder, uint flags, IntPtr token, out IntPtr path);
         public string Status { get; private set; }
         public double[] Points { get; private set; }
         public ulong Timestamp { get; private set; }
         public DateTime ReceivedAt { get; private set; }
         public LidarSnapshot(string status, double[] points, ulong timestamp, DateTime? receivedAt = null) {
             Status = status; Points = points ?? new double[0]; Timestamp = timestamp; ReceivedAt = receivedAt ?? DateTime.UtcNow;
+        }
+        static bool Finite(double value) { return !Double.IsNaN(value) && !Double.IsInfinity(value); }
+        public string SavePositionsCsv(string directory) {
+            if (Status != "Live" || Timestamp == 0 || Points.Length == 0 || Points.Length % 3 != 0)
+                throw new InvalidOperationException("No current lidar scan to download.");
+            bool valid = false;
+            for (int i = 0; i < Points.Length; i += 3)
+                if (Finite(Points[i]) && Finite(Points[i+1]) && Finite(Points[i+2])) { valid = true; break; }
+            if (!valid) throw new InvalidOperationException("The scan has no valid positions to download.");
+            Directory.CreateDirectory(directory);
+            string filename = "lidar-map-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) +
+                "-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".csv";
+            string destination = Path.Combine(directory, filename);
+            using (var file = new FileStream(destination, FileMode.CreateNew, FileAccess.Write))
+            using (var writer = new StreamWriter(file, new UTF8Encoding(false))) {
+                writer.WriteLine("x,y,z");
+                for (int i = 0; i < Points.Length; i += 3) {
+                    if (!Finite(Points[i]) || !Finite(Points[i+1]) || !Finite(Points[i+2])) continue;
+                    writer.WriteLine(Points[i].ToString("R", CultureInfo.InvariantCulture) + "," +
+                        Points[i+1].ToString("R", CultureInfo.InvariantCulture) + "," +
+                        Points[i+2].ToString("R", CultureInfo.InvariantCulture));
+                }
+            }
+            return destination;
+        }
+        public string DownloadPositionsCsv() {
+            // The known folder follows relocated Windows Downloads folders.
+            Guid downloads = new Guid("374DE290-123F-4565-9164-39C4925E467B");
+            IntPtr path;
+            int result = SHGetKnownFolderPath(ref downloads, 0, IntPtr.Zero, out path);
+            try {
+                Marshal.ThrowExceptionForHR(result);
+                return SavePositionsCsv(Marshal.PtrToStringUni(path));
+            } finally { if (path != IntPtr.Zero) Marshal.FreeCoTaskMem(path); }
         }
     }
 
