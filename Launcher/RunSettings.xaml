@@ -120,7 +120,7 @@
         <Button Name="BackButton" Content="&#x2190; Back" Padding="12,7" FontSize="12" Margin="0,0,15,0" Visibility="Collapsed"/>
         <TextBlock Name="Breadcrumb" Text="RUN SETTINGS" Style="{StaticResource Eyebrow}" VerticalAlignment="Center"/>
       </DockPanel>
-      <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
+      <ScrollViewer Name="SettingsScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
       <Grid>
         <StackPanel Name="HomePage">
           <Button Name="LidarButton" AutomationProperties.Name="Lidar configuration" Padding="26" HorizontalContentAlignment="Stretch" Background="#172438" BorderBrush="#344667">
@@ -140,6 +140,48 @@
               <TextBlock Grid.Column="2" Text="&#x2192;" FontSize="26" Foreground="#B6A1FF" VerticalAlignment="Center"/>
             </Grid>
           </Button>
+          <Button Name="ImuConfigButton" AutomationProperties.Name="IMU configuration" Padding="20,12" Margin="0,10,0,0" HorizontalContentAlignment="Stretch" Background="#172438" BorderBrush="#344667">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="&#x2192;" FontSize="20" Foreground="#B6A1FF" VerticalAlignment="Center"/>
+              <StackPanel>
+                <TextBlock Text="IMU configuration" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Name="ImuConfigSummary" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+          <Button Name="GpsConfigButton" AutomationProperties.Name="GNSS (GPS) configuration" Padding="20,12" Margin="0,10,0,0" HorizontalContentAlignment="Stretch" Background="#172438" BorderBrush="#344667">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="&#x2192;" FontSize="20" Foreground="#B6A1FF" VerticalAlignment="Center"/>
+              <StackPanel>
+                <TextBlock Text="GNSS (GPS) configuration" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Name="GpsConfigSummary" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+          <Button Name="WheelSpeedConfigButton" AutomationProperties.Name="Wheel-speed configuration" Padding="20,12" Margin="0,10,0,0" HorizontalContentAlignment="Stretch" Background="#172438" BorderBrush="#344667">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="&#x2192;" FontSize="20" Foreground="#B6A1FF" VerticalAlignment="Center"/>
+              <StackPanel>
+                <TextBlock Text="Wheel-speed configuration" FontSize="16" FontWeight="SemiBold"/>
+                <TextBlock Name="WheelSpeedConfigSummary" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+              </StackPanel>
+            </DockPanel>
+          </Button>
+          <Button Name="LiveSensorsButton" Content="Live sensor readings and CSV" HorizontalContentAlignment="Left" Margin="0,12,0,0"/>
+        </StackPanel>
+        <StackPanel Name="HardwareConfigPage" Visibility="Collapsed">
+          <TextBlock Name="HardwareConfigTitle" FontSize="30" FontWeight="SemiBold"/>
+          <TextBlock Name="HardwareConfigModel" Foreground="#C8B9FF" FontSize="16" TextWrapping="Wrap" Margin="0,6,0,22"/>
+          <Border Background="#172438" BorderBrush="#33425A" BorderThickness="1" CornerRadius="14" Padding="20">
+            <StackPanel>
+              <TextBlock Name="HardwareConfigSpec" Style="{StaticResource Muted}" TextWrapping="Wrap"/>
+              <TextBlock Name="HardwareConfigPositions" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,16,0,0"/>
+              <DockPanel Name="HardwareConfigControls" Margin="0,20,0,0">
+                <Button Name="HardwareConfigToggle" DockPanel.Dock="Right" MinWidth="88" Margin="14,0,0,0"/>
+                <TextBlock Name="HardwareConfigStatus" VerticalAlignment="Center" TextWrapping="Wrap"/>
+              </DockPanel>
+            </StackPanel>
+          </Border>
         </StackPanel>
         <StackPanel Name="CatalogPage" Visibility="Collapsed">
           <TextBlock Text="Lidar configuration" FontSize="30" FontWeight="SemiBold" Margin="0,0,0,10"/>
@@ -279,6 +321,27 @@
             <TextBlock Grid.Column="6" Text="80" Style="{StaticResource Muted}" FontSize="10"/>
             <TextBlock Grid.Column="6" Text="200 m" Style="{StaticResource Muted}" FontSize="10" HorizontalAlignment="Right"/>
           </Grid>
+          <StackPanel Name="LiveSensorsSection" Margin="0,30,0,12">
+            <DockPanel>
+              <Button Name="DownloadSensorCsvButton" DockPanel.Dock="Right" Content="Download last run CSV" IsEnabled="False" Margin="12,0,0,0"/>
+              <TextBlock Text="Live sensor readings" FontSize="23" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+            <TextBlock Name="SensorCaptureStatus" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <TextBlock Name="SensorExportStatus" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            <TextBlock Name="ImuModel" FontSize="17" FontWeight="SemiBold" Margin="0,16,0,0"/>
+            <TextBlock Name="ImuSpec" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+            <TextBlock Text="Orientation quaternion, angular velocity (rad/s), linear acceleration (m/s&#178;), and noise estimates." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <TextBlock Name="ImuReading" FontFamily="Consolas" TextWrapping="Wrap"/>
+            <TextBlock Name="GpsModel" FontSize="17" FontWeight="SemiBold" Margin="0,16,0,0"/>
+            <TextBlock Name="GpsSpec" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+            <TextBlock Text="Latitude and longitude (degrees), altitude (m), velocity (m/s), and UTC timestamp (ms)." Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <TextBlock Name="GpsReading" FontFamily="Consolas" TextWrapping="Wrap"/>
+            <TextBlock Name="WheelModel" FontSize="17" FontWeight="SemiBold" Margin="0,16,0,0"/>
+            <TextBlock Name="WheelSpec" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+            <TextBlock Name="WheelReading" FontFamily="Consolas" TextWrapping="Wrap"/>
+            <TextBlock Name="LidarModel" FontSize="17" FontWeight="SemiBold" Margin="0,16,0,0"/>
+            <TextBlock Name="LidarReading" FontFamily="Consolas" TextWrapping="Wrap" Margin="0,4,0,0"/>
+          </StackPanel>
         </StackPanel>
         <StackPanel Name="AutomaticMovementPage" Visibility="Collapsed">
           <TextBlock Text="Automatic Movement" FontSize="30" FontWeight="SemiBold" Margin="0,0,0,10"/>

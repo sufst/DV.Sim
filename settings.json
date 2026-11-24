@@ -1,5 +1,38 @@
 {
   "SettingsVersion": 1.2,
+  "SensorHardware": {
+    "Lidar": {
+      "Model": "Hesai Pandar 40P"
+    },
+    "Imu": {
+      "Model": "STMicroelectronics LSM6DSO32TR",
+      "AccelerometerFullScaleG": 4,
+      "GyroscopeFullScaleDegPerSecond": 250,
+      "AccelerometerNoiseDensityMicroGPerRootHz": 120,
+      "GyroscopeNoiseDensityMilliDegPerSecondPerRootHz": 3.8,
+      "AccelerometerSensitivityMgPerLsb": 0.122,
+      "GyroscopeSensitivityMilliDegPerSecondPerLsb": 8.75,
+      "TypicalZeroGOffsetMg": 20,
+      "TypicalZeroRateOffsetDegPerSecond": 0.5,
+      "TypicalSensitivityTolerancePercent": 0.5
+    },
+    "Gps": {
+      "Model": "u-blox ZED-F9P",
+      "ReferenceVariant": "ZED-F9P-05B",
+      "RtkHorizontalAccuracyMetresCep": 0.01,
+      "RtkVerticalAccuracyMetresR50": 0.01,
+      "RtkBaselineErrorPpm": 1,
+      "VelocityAccuracyMetresPerSecond": 0.05
+    },
+    "WheelSpeed": {
+      "Model": "SICK IME08-02BPSZW2K",
+      "RSStockNumber": "209-3368",
+      "Positions": ["Front left", "Front right", "Rear left", "Rear right"],
+      "NominalSensingDistanceMm": 2,
+      "MaxSwitchingFrequencyHz": 4000,
+      "MaxSwitchingDistanceRepeatabilityPercent": 2
+    }
+  },
   "Vehicles": {
     "FSCar": {
       "DefaultVehicleState": "",
@@ -10,6 +43,10 @@
           "RemoteControlID": -1
       },
       "Sensors": {
+        "Imu": {
+          "SensorType": 2,
+          "Enabled": true
+        },
         "Gps" : {
           "SensorType": 3,
           "Enabled": true

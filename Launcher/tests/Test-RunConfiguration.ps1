@@ -12,6 +12,17 @@ try {
     $withoutLidar = New-SimulatorSettings $basePath $preference
     Assert ($null -eq $withoutLidar.Vehicles.FSCar.Sensors.Lidar) 'Absent lidar must not exist in runtime settings.'
     Assert $withoutLidar.Vehicles.FSCar.Sensors.Gps.Enabled 'GPS must be retained.'
+    Assert $withoutLidar.Vehicles.FSCar.Sensors.Imu.Enabled 'IMU must be retained for legacy preferences.'
+    $sensorPreference = New-RunPreference
+    $sensorPreference | Add-Member -NotePropertyName ImuEnabled -NotePropertyValue $false
+    Write-RunJson $preferencePath $sensorPreference
+    $sensorPreference = Read-RunPreference $preferencePath
+    $sensors = (New-SimulatorSettings $basePath $sensorPreference).Vehicles.FSCar.Sensors
+    Assert (-not $sensors.Imu.Enabled -and $sensors.Gps.Enabled) 'IMU override must persist independently of GPS.'
+    $sensorPreference.ImuEnabled = $true
+    $sensorPreference | Add-Member -NotePropertyName GpsEnabled -NotePropertyValue $false
+    $sensors = (New-SimulatorSettings $basePath $sensorPreference).Vehicles.FSCar.Sensors
+    Assert ($sensors.Imu.Enabled -and -not $sensors.Gps.Enabled) 'GPS override must apply independently of IMU.'
     $preference.Added = $true
     $preference.Placement.X = 1.25
     $preference.Placement.Y = -0.2

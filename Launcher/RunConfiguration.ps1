@@ -11,6 +11,12 @@ function Assert-RunPreference($Preference) {
     if ($Preference.Version -ne 1 -or $Preference.Added -isnot [bool]) {
         throw 'The saved run configuration has an unsupported format.'
     }
+    foreach ($name in 'ImuEnabled', 'GpsEnabled') {
+        $property = $Preference.PSObject.Properties[$name]
+        if ($null -ne $property -and $property.Value -isnot [bool]) {
+            throw "$name must be true or false."
+        }
+    }
     foreach ($axis in 'X', 'Y', 'Z', 'Roll', 'Pitch', 'Yaw') {
         $number = 0.0
         $value = $Preference.Placement.$axis
@@ -54,7 +60,18 @@ function New-SimulatorSettings([string]$BasePath, $Preference) {
     $car = $settings.Vehicles.FSCar
     if ($null -eq $car) { throw 'The shared settings must contain Vehicles.FSCar.' }
     if ($null -eq $car.Sensors) { $car | Add-Member -NotePropertyName Sensors -NotePropertyValue ([pscustomobject]@{}) -Force }
-    # This panel manages a single lidar; retain GPS and other sensor types.
+    foreach ($name in 'Imu', 'Gps') {
+        $override = $Preference.PSObject.Properties[$name + 'Enabled']
+        if ($null -eq $override) { continue }
+        $sensor = $car.Sensors.$name
+        if ($null -eq $sensor) {
+            $sensorType = if ($name -eq 'Imu') { 2 } else { 3 }
+            $sensor = [pscustomobject]@{ SensorType = $sensorType }
+            $car.Sensors | Add-Member -NotePropertyName $name -NotePropertyValue $sensor -Force
+        }
+        $sensor | Add-Member -NotePropertyName Enabled -NotePropertyValue $override.Value -Force
+    }
+    # Replace the managed lidar while preserving the other sensors.
     $lidars = @($car.Sensors.PSObject.Properties | Where-Object { $_.Value.SensorType -eq 6 })
     foreach ($lidar in $lidars) { $car.Sensors.PSObject.Properties.Remove($lidar.Name) }
     if ($Preference.Added) {

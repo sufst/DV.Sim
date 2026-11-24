@@ -40,6 +40,36 @@ Keep shared sensor configuration in the tracked `settings.json`.
 - Click **Run Simulation** to start it up
 - This will give you standard gamin controls over the car to move it around
 
+### Live sensors and CSV
+
+The Run settings home page lists **IMU configuration**, **GNSS (GPS)
+configuration**, and **Wheel-speed configuration** below **Lidar
+configuration**. Enable or disable IMU and GNSS independently, then use
+**Apply & restart simulator**. The wheel-speed page lists the shared hardware
+and all four wheel positions.
+
+Open **Live sensor readings and CSV** below **Lidar configuration** in Run
+settings, or scroll below the live lidar map. Keep Run settings open throughout
+the run to record samples even when viewing another page.
+
+**Download last run CSV** saves the latest recording, including samples
+captured so far if the simulator is still running. Run settings polls up to
+five times per second. The CSV uses one row per field or lidar point, with the
+sensor name and its original FSDS timestamp in nanoseconds. Disabled lidar does
+not produce samples. The current recording is kept in
+`FSOnline/Saved/RunSettings/last-sensor-run.csv`.
+
+`SensorHardware` in `settings.json` names the hardware and lists manufacturer
+reference specifications. The native FSDS configuration enables `Imu` and
+`Gps`, while lidar still follows the saved lidar setting. The IMU and GNSS
+readings use the packaged FSDS noise and uncertainty models. All four wheel
+positions use the same SICK part in the hardware configuration. FSDS does not
+expose individual wheel measurements, so they appear as unavailable.
+
+Hardware references: [ST LSM6DSO32](https://www.st.com/resource/en/datasheet/lsm6dso32.pdf),
+[u-blox ZED-F9P-05B](https://content.u-blox.com/sites/default/files/documents/ZED-F9P-05B_DataSheet_UBXDOC-963802114-12824.pdf),
+[SICK IME08-02BPSZW2K](https://www.sick.com/media/pdf/5/05/405/dataSheet_IME08-02BPSZW2K_1040871_es.pdf).
+
 ## API control
 
 - Set working directory as **DV.Sim/python** and run:
